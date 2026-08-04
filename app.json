@@ -1,13 +1,25 @@
 {
   "expo": {
-    "name": "ambient-care",
+    "name": "Ambient Care",
     "slug": "ambient-care",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "ambientcare",
+    "splash": {
+      "backgroundColor": "#FBF7F0",
+      "resizeMode": "contain",
+      "image": "./assets/splash-icon.png"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Ambient Care listens for falls, distress, and unusual silence to keep your loved one safe. Audio is analyzed on the device and is not recorded or stored.",
+        "NSCameraUsageDescription": "The camera is used briefly to scan a medicine bottle so we can confirm it matches your medication list. No photos are saved.",
+        "NSSpeechRecognitionUsageDescription": "Speech is used on the device to understand simple spoken requests like asking for your medicine.",
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,10 +28,27 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": ["RECORD_AUDIO", "CAMERA", "POST_NOTIFICATIONS"],
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "The camera is used briefly to scan a medicine bottle and confirm it matches your list. No photos are saved.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Ambient Care listens for safety events (falls, distress, unusual silence). Audio is analyzed on the device and never recorded or stored."
+        }
+      ],
+      "expo-notifications"
+    ]
   }
 }
