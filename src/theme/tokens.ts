@@ -1,10 +1,11 @@
 /**
  * Design tokens for Ambient Care.
  *
- * Direction: "warm clinical" — a calm, high-contrast, accessible system for a
+ * Direction: "modern clinical" — a cool, sleek, high-contrast system for a
  * product two very different people use: an 80-year-old at their kitchen counter,
- * and their adult child glancing at a phone between meetings. Warm paper keeps it
- * human; disciplined ink contrast and a single trustworthy teal keep it credible.
+ * and their adult child glancing at a phone between meetings. Cool architectural
+ * neutrals (a whisper of slate-blue, never sand) read modern and premium;
+ * disciplined ink contrast and a single deep, trustworthy teal keep it credible.
  * Status color is semantic (calm / check-in / urgent), never decorative.
  *
  * Typography: Lexend (readability-optimized, used for headings + the large senior
@@ -13,22 +14,22 @@
  */
 
 export const colors = {
-  // Surfaces
-  paper: '#F7F4EF', // warm off-white background
+  // Surfaces — cool neutrals with a faint slate-blue undertone
+  paper: '#F4F6F8', // sleek cool off-white background
   surface: '#FFFFFF', // raised cards
-  surfaceSunken: '#EEEAE1', // insets, input wells
-  line: '#E3DDD2', // hairline dividers
-  lineStrong: '#D5CDBF', // stronger separators / input borders
+  surfaceSunken: '#EAEEF2', // insets, input wells
+  line: '#E3E8ED', // hairline dividers
+  lineStrong: '#CDD5DE', // stronger separators / input borders
 
-  // Ink (warm neutrals, tuned for >= 4.5:1 on paper/surface)
-  ink: '#1F1A15', // primary text
-  inkSoft: '#655C52', // secondary text
-  inkFaint: '#938A7E', // tertiary / captions
+  // Ink (cool slate neutrals, tuned for >= 4.5:1 on paper/surface)
+  ink: '#12171E', // primary text
+  inkSoft: '#505A66', // secondary text
+  inkFaint: '#6B7480', // tertiary / captions
 
-  // Brand accent — a confident, trustworthy teal
-  accent: '#0E7A6A',
-  accentSoft: '#D6E9E4',
-  accentInk: '#0A564A',
+  // Brand accent — a deep, confident, modern teal
+  accent: '#0F766E',
+  accentSoft: '#D3E7E4',
+  accentInk: '#0B5E57',
 
   // Semantic status
   calm: '#2E9A67', // green — all is well
@@ -47,7 +48,7 @@ export const colors = {
   onStatus: '#FFFFFF',
 
   // Focus ring
-  focus: '#0E7A6A',
+  focus: '#0F766E',
 } as const;
 
 export type StatusKey = 'calm' | 'checkIn' | 'urgent';
@@ -106,18 +107,18 @@ export const type = {
   seniorGreeting: 32,
 } as const;
 
-// Elevation — soft, warm, layered (not the harsh default RN shadow)
+// Elevation — soft, cool, layered (not the harsh default RN shadow)
 export const shadow = {
   card: {
-    shadowColor: '#3A2E1E',
-    shadowOpacity: 0.06,
+    shadowColor: '#0F1B2A',
+    shadowOpacity: 0.07,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
   },
   lift: {
-    shadowColor: '#3A2E1E',
-    shadowOpacity: 0.12,
+    shadowColor: '#0F1B2A',
+    shadowOpacity: 0.14,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 10 },
     elevation: 5,

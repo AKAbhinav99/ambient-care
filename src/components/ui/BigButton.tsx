@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Animated, Pressable, Text, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Animated, Easing, Pressable, Text, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, space, shadow, type, font } from '../../theme/tokens';
 import { Icon, type IconName } from './Icon';
 
@@ -33,7 +33,10 @@ export function BigButton({
   disabled,
   style,
 }: BigButtonProps) {
-  const scale = useRef(new Animated.Value(1)).current;
+  // A single 0→1 "pressed" driver, eased quickly on the way in and a touch
+  // slower on release. Interpolated into a subtle scale + dim — a designed
+  // press transition that stays quiet rather than showy.
+  const press = useRef(new Animated.Value(0)).current;
   const p = palette[variant];
   const isXl = size === 'xl';
   const iconSize = isXl ? 34 : 22;
@@ -41,17 +44,25 @@ export function BigButton({
   const wellBg = onColor ? 'rgba(255,255,255,0.18)' : colors.accentSoft;
   const iconColor = onColor ? p.fg : colors.accentInk;
 
+  const scale = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.98] });
+  const pressOpacity = press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.92] });
+
   const animate = (to: number) =>
-    Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
+    Animated.timing(press, {
+      toValue: to,
+      duration: to ? 90 : 160,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
 
   return (
-    <Animated.View style={[{ transform: [{ scale }] }, style]}>
+    <Animated.View style={[{ transform: [{ scale }], opacity: pressOpacity }, style]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={sublabel ? `${label}. ${sublabel}` : label}
         onPress={onPress}
-        onPressIn={() => animate(0.97)}
-        onPressOut={() => animate(1)}
+        onPressIn={() => animate(1)}
+        onPressOut={() => animate(0)}
         disabled={disabled}
         style={[
           styles.base,
