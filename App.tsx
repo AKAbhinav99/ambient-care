@@ -3,6 +3,14 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, type Theme } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import { Lexend_500Medium, Lexend_600SemiBold, Lexend_700Bold } from '@expo-google-fonts/lexend';
+import {
+  SourceSans3_400Regular,
+  SourceSans3_600SemiBold,
+  SourceSans3_700Bold,
+} from '@expo-google-fonts/source-sans-3';
+import './src/theme/applyFonts';
 import { useStore } from './src/lib/store';
 import { colors } from './src/theme/tokens';
 import { RoleSelectScreen } from './src/screens/RoleSelectScreen';
@@ -35,8 +43,24 @@ function useHydrated(): boolean {
 export default function App() {
   const hydrated = useHydrated();
   const role = useStore((s) => s.role);
+  const reconcileDoses = useStore((s) => s.reconcileDoses);
+  const [fontsLoaded] = useFonts({
+    Lexend_500Medium,
+    Lexend_600SemiBold,
+    Lexend_700Bold,
+    SourceSans3_400Regular,
+    SourceSans3_600SemiBold,
+    SourceSans3_700Bold,
+  });
 
-  const surface = !hydrated ? (
+  const ready = hydrated && fontsLoaded;
+
+  // Catch any doses that lapsed while the app was closed, once state is ready.
+  useEffect(() => {
+    if (ready) reconcileDoses();
+  }, [ready, reconcileDoses]);
+
+  const surface = !ready ? (
     <View style={styles.loading}>
       <ActivityIndicator color={colors.accent} size="large" />
     </View>

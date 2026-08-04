@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
 import { Card } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
-import { colors, space, type, radius } from '../../theme/tokens';
+import { Icon, type IconName } from '../../components/ui/Icon';
+import { colors, space, type, radius, font } from '../../theme/tokens';
 import type { SeniorProps } from '../../navigation/types';
 
 export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
@@ -20,7 +21,7 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
         {lovedOne ? (
           <>
             <ToggleCard
-              icon="🖥️"
+              icon="settings"
               title="Always-on mode"
               desc="Keep this app in front so it can watch out for you. You can always leave it to use other apps — nothing is locked."
               value={lovedOne.alwaysOnMode}
@@ -28,7 +29,7 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
             />
 
             <ToggleCard
-              icon="👂"
+              icon="volume"
               title="Listen for my safety"
               desc="This device listens for falls, distress, and unusual quiet. Sounds are checked right here on the device — nothing is recorded or sent anywhere."
               value={lovedOne.ambientOptIn}
@@ -53,7 +54,7 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
         )}
 
         <BigButton
-          icon="🔗"
+          icon="link"
           label="Connect to family"
           variant="neutral"
           onPress={() => navigation.navigate('Pairing')}
@@ -84,7 +85,7 @@ function ToggleCard({
   onToggle,
   highlight,
 }: {
-  icon: string;
+  icon: IconName;
   title: string;
   desc: string;
   value: boolean;
@@ -95,7 +96,9 @@ function ToggleCard({
     <Pressable onPress={() => onToggle(!value)}>
       <Card style={[styles.toggleCard, highlight && { backgroundColor: colors.accentSoft, borderColor: colors.accent }]}>
         <View style={styles.toggleHead}>
-          <Text style={styles.toggleIcon}>{icon}</Text>
+          <View style={styles.toggleIconWell}>
+            <Icon name={icon} size={22} color={colors.accentInk} strokeWidth={2} />
+          </View>
           <Text style={styles.toggleTitle}>{title}</Text>
           <View style={[styles.switch, value && styles.switchOn]}>
             <View style={[styles.knob, value && styles.knobOn]} />
@@ -110,14 +113,21 @@ function ToggleCard({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg },
-  title: { fontSize: type.seniorTitle, fontWeight: '800', color: colors.ink, marginBottom: space.lg },
+  title: { fontFamily: font.display, fontSize: type.seniorTitle, color: colors.ink, marginBottom: space.lg },
   note: { fontSize: type.body, color: colors.inkSoft },
 
   toggleCard: { marginBottom: space.md },
   toggleHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  toggleIcon: { fontSize: 30 },
-  toggleTitle: { flex: 1, fontSize: type.bodyLg, fontWeight: '800', color: colors.ink },
-  toggleDesc: { fontSize: type.body, color: colors.inkSoft, marginTop: space.sm, lineHeight: type.body * 1.4 },
+  toggleIconWell: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.sm,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toggleTitle: { flex: 1, fontFamily: font.headingBold, fontSize: type.bodyLg, color: colors.ink },
+  toggleDesc: { fontFamily: font.body, fontSize: type.body, color: colors.inkSoft, marginTop: space.sm, lineHeight: type.body * 1.4 },
 
   dotCard: { backgroundColor: colors.surfaceSunken, marginBottom: space.md },
   dotRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },

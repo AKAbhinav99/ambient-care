@@ -5,6 +5,9 @@ export type CaregiverStackParams = {
   LovedOne: undefined;
   Medications: undefined;
   DailyLog: undefined;
+  Adherence: undefined;
+  Interactions: undefined;
+  EmergencyCard: undefined;
 };
 
 export type SeniorStackParams = {
@@ -13,6 +16,7 @@ export type SeniorStackParams = {
   Scan: undefined;
   Voice: undefined;
   SeniorSettings: undefined;
+  EmergencyCard: undefined;
 };
 
 export type CaregiverProps<T extends keyof CaregiverStackParams> = NativeStackScreenProps<

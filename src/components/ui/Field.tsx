@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, type KeyboardTypeOptions } from 'react-native';
-import { colors, radius, space, type } from '../../theme/tokens';
+import { colors, radius, space, type, font } from '../../theme/tokens';
 
 interface FieldProps {
   label: string;
@@ -38,8 +38,8 @@ export function Field({
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
   label: {
+    fontFamily: font.bodyMed,
     fontSize: type.caption,
-    fontWeight: '700',
     color: colors.inkSoft,
     marginBottom: space.xs,
   },
@@ -47,9 +47,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSunken,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.lineStrong,
     paddingHorizontal: space.md,
-    paddingVertical: space.sm + 2,
+    paddingVertical: space.sm + 3,
+    minHeight: 48,
+    fontFamily: font.body,
     fontSize: type.body,
     color: colors.ink,
   },

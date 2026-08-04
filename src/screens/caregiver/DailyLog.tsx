@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
 import { LogRow } from '../../components/LogRow';
 import { Card } from '../../components/ui/Card';
-import { colors, space, type } from '../../theme/tokens';
+import { colors, space, type, font } from '../../theme/tokens';
 
 export function DailyLog() {
   const events = useStore((s) => s.events);
@@ -50,8 +50,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.md },
-  title: { fontSize: type.headline, fontWeight: '800', color: colors.ink },
-  clear: { color: colors.urgent, fontWeight: '600', fontSize: type.body },
+  title: { fontFamily: font.display, fontSize: type.headline, color: colors.ink },
+  clear: { color: colors.urgent, fontFamily: font.bodyMed, fontSize: type.body },
   card: { paddingVertical: space.xs },
   divider: { height: 1, backgroundColor: colors.line },
   empty: { fontSize: type.body, color: colors.inkFaint, marginTop: space.xl, textAlign: 'center' },

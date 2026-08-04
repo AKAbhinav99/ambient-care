@@ -5,12 +5,16 @@ import { useStore } from '../../lib/store';
 import { say } from '../../lib/speech';
 import { fireAlert } from '../../lib/notifications';
 import { matchIntent, smalltalkReply, type IntentId } from '../../lib/intents';
-import { colors, space, type, radius, shadow } from '../../theme/tokens';
+import { todaysDoses } from '../../lib/adherence';
+import { Icon, type IconName } from '../../components/ui/Icon';
+import { colors, space, type, radius, shadow, font } from '../../theme/tokens';
+import type { DoseLog, Medication } from '../../types';
 import type { SeniorProps } from '../../navigation/types';
 
 export function VoiceScreen(_: SeniorProps<'Voice'>) {
   const lovedOne = useStore((s) => s.lovedOne);
   const medications = useStore((s) => s.medications);
+  const doseLogs = useStore((s) => s.doseLogs);
   const logEvent = useStore((s) => s.logEvent);
 
   const [reply, setReply] = useState<string>(
@@ -57,6 +61,15 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
         respond(medsSentence(medications));
         break;
       }
+      case 'checkMeds': {
+        logEvent({
+          kind: 'voice_meds',
+          severity: 'info',
+          title: `${firstName(lovedOne?.name)} asked if they'd taken their medicine`,
+        });
+        respond(takenAnswer(medications, doseLogs, Date.now()));
+        break;
+      }
       default:
         respond(smalltalkReply());
     }
@@ -79,25 +92,32 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
         <Text style={styles.prompt}>What would you like?</Text>
 
         <IntentCard
-          icon="🆘"
+          icon="alert-circle"
           title="I don't feel good"
           desc={`Tells ${familyName} right away`}
           tone="urgent"
           onPress={() => handleIntent('distress')}
         />
         <IntentCard
-          icon="📞"
+          icon="phone"
           title={`Call ${family}`}
           desc="Reach your family now"
           tone="accent"
           onPress={() => handleIntent('callFamily')}
         />
         <IntentCard
-          icon="💊"
+          icon="pill"
           title="What pills do I take?"
           desc="I'll read your list out loud"
           tone="neutral"
           onPress={() => handleIntent('meds')}
+        />
+        <IntentCard
+          icon="check-circle"
+          title="Did I take my pills?"
+          desc="I'll check what you've taken today"
+          tone="neutral"
+          onPress={() => handleIntent('checkMeds')}
         />
 
         {/* Honest note + typed input standing in for on-device STT */}
@@ -131,23 +151,31 @@ function IntentCard({
   tone,
   onPress,
 }: {
-  icon: string;
+  icon: IconName;
   title: string;
   desc: string;
   tone: 'urgent' | 'accent' | 'neutral';
   onPress: () => void;
 }) {
-  const border =
-    tone === 'urgent' ? colors.urgent : tone === 'accent' ? colors.accent : colors.line;
+  const accentColor = tone === 'urgent' ? colors.urgent : tone === 'accent' ? colors.accent : colors.accentInk;
+  const border = tone === 'urgent' ? colors.urgent : tone === 'accent' ? colors.accent : colors.lineStrong;
   const bg = tone === 'urgent' ? colors.urgentSoft : tone === 'accent' ? colors.accentSoft : colors.surface;
+  const wellBg = tone === 'neutral' ? colors.surfaceSunken : 'rgba(255,255,255,0.6)';
   return (
-    <Pressable style={[styles.card, shadow.card, { borderColor: border, backgroundColor: bg }]} onPress={onPress}>
-      <Text style={styles.cardIcon}>{icon}</Text>
+    <Pressable
+      style={[styles.card, shadow.card, { borderColor: border, backgroundColor: bg }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${desc}`}
+    >
+      <View style={[styles.cardIconWell, { backgroundColor: wellBg }]}>
+        <Icon name={icon} size={30} color={accentColor} strokeWidth={2.2} />
+      </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.cardTitle}>{title}</Text>
         <Text style={styles.cardDesc}>{desc}</Text>
       </View>
-      <Text style={styles.chev}>›</Text>
+      <Icon name="chevron-right" size={28} color={colors.inkFaint} />
     </Pressable>
   );
 }
@@ -160,6 +188,34 @@ function medsSentence(meds: { name: string; schedule: string; dosage: string }[]
   if (meds.length === 0) return "I don't have any medicines on your list yet. Ask your family to add them.";
   const parts = meds.map((m) => `${m.name}, ${m.dosage.toLowerCase()}, in the ${scheduleWord(m.schedule)}`);
   return `Here's your medicine. ${parts.join('. ')}.`;
+}
+
+/** Join a set of doses by their friendly names, e.g. "your aspirin and your sugar medicine". */
+function listFriendly(doses: { med: Medication }[]): string {
+  const names = Array.from(new Set(doses.map((d) => d.med.friendlyName)));
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+}
+
+/** Answer "did I take my meds?" from today's dose log. */
+function takenAnswer(meds: Medication[], doseLogs: DoseLog[], now: number): string {
+  const today = todaysDoses(meds, doseLogs, now);
+  if (!today.length) return "You don't have any scheduled medicines today.";
+  const taken = today.filter((d) => d.status === 'taken');
+  const pending = today.filter((d) => d.status === 'due' || d.status === 'upcoming');
+  const missed = today.filter((d) => d.status === 'missed');
+
+  const parts: string[] = [];
+  if (!pending.length && !missed.length && taken.length) {
+    return `Yes — you're all caught up. You've taken ${listFriendly(taken)} today. Nicely done.`;
+  }
+  parts.push(taken.length ? `You've already taken ${listFriendly(taken)}.` : "You haven't taken any medicine yet today.");
+  if (pending.length) parts.push(`Still coming up: ${listFriendly(pending)}.`);
+  if (missed.length) {
+    parts.push(`It looks like you may have missed ${listFriendly(missed)}. That's okay — I've let your family know.`);
+  }
+  return parts.join(' ');
 }
 
 function scheduleWord(s: string) {
@@ -188,11 +244,11 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     marginBottom: space.lg,
   },
-  replyText: { fontSize: type.seniorBody, color: colors.accentInk, fontWeight: '600', lineHeight: type.seniorBody * 1.35 },
+  replyText: { fontFamily: font.headingMed, fontSize: type.seniorBody, color: colors.accentInk, lineHeight: type.seniorBody * 1.35 },
   prompt: {
+    fontFamily: font.bodyBold,
     fontSize: type.caption,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: colors.inkFaint,
     marginBottom: space.md,
@@ -202,15 +258,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.md,
     borderRadius: radius.lg,
-    borderWidth: 2,
+    borderWidth: 1.5,
     padding: space.lg,
     marginBottom: space.md,
     minHeight: 96,
   },
-  cardIcon: { fontSize: 44 },
-  cardTitle: { fontSize: type.seniorBody, fontWeight: '800', color: colors.ink },
-  cardDesc: { fontSize: type.body, color: colors.inkSoft, marginTop: 2 },
-  chev: { fontSize: 34, color: colors.inkFaint },
+  cardIconWell: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: { fontFamily: font.displaySemi, fontSize: type.seniorBody, color: colors.ink },
+  cardDesc: { fontFamily: font.body, fontSize: type.body, color: colors.inkSoft, marginTop: 2 },
 
   typeRow: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
   input: {

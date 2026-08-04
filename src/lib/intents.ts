@@ -12,7 +12,7 @@
  * input source later without touching this logic.
  */
 
-export type IntentId = 'distress' | 'callFamily' | 'meds' | 'smalltalk';
+export type IntentId = 'distress' | 'callFamily' | 'checkMeds' | 'meds' | 'smalltalk';
 
 interface IntentDef {
   id: IntentId;
@@ -21,6 +21,16 @@ interface IntentDef {
 }
 
 const INTENTS: IntentDef[] = [
+  {
+    // Checked BEFORE `meds` so "did I take my pills?" isn't caught by the generic query.
+    id: 'checkMeds',
+    patterns: [
+      /did i (already )?(take|have)/i,
+      /have i (taken|had)/i,
+      /already (take|took|had)/i,
+      /took my (pills?|medicine|meds|medication)/i,
+    ],
+  },
   {
     id: 'distress',
     patterns: [

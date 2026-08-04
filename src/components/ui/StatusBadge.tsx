@@ -1,15 +1,24 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { colors, radius, space, type, statusMeta, type StatusKey } from '../../theme/tokens';
+import { colors, radius, space, type, font, statusMeta, type StatusKey } from '../../theme/tokens';
+import { Icon, type IconName } from './Icon';
+
+const STATUS_ICON: Record<StatusKey, IconName> = {
+  calm: 'check-circle',
+  checkIn: 'alert-triangle',
+  urgent: 'alert-circle',
+};
 
 /** The single at-a-glance signal on the caregiver dashboard. */
 export function StatusBadge({ status, reason }: { status: StatusKey; reason: string }) {
   const meta = statusMeta[status];
   return (
     <View style={[styles.wrap, { backgroundColor: meta.soft, borderColor: meta.color }]}>
-      <View style={[styles.dot, { backgroundColor: meta.color }]} />
+      <View style={[styles.iconCircle, { backgroundColor: meta.color }]}>
+        <Icon name={STATUS_ICON[status]} size={22} color="#fff" strokeWidth={2.2} />
+      </View>
       <View style={{ flex: 1 }}>
-        <Text style={[styles.label, { color: meta.color }]}>{meta.label}</Text>
+        <Text style={[styles.label, { color: meta.ink }]}>{meta.label}</Text>
         <Text style={styles.reason}>{reason}</Text>
       </View>
     </View>
@@ -30,8 +39,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     padding: space.lg,
   },
-  dot: { width: 18, height: 18, borderRadius: radius.pill },
+  iconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   miniDot: { width: 10, height: 10, borderRadius: radius.pill },
-  label: { fontSize: type.title, fontWeight: '800' },
-  reason: { fontSize: type.body, color: colors.inkSoft, marginTop: 2 },
+  label: { fontFamily: font.headingBold, fontSize: type.title },
+  reason: { fontFamily: font.body, fontSize: type.body, color: colors.inkSoft, marginTop: 2 },
 });

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../lib/store';
 import { BigButton } from '../components/ui/BigButton';
-import { colors, space, type, radius } from '../theme/tokens';
+import { Icon } from '../components/ui/Icon';
+import { colors, space, type, radius, font } from '../theme/tokens';
 
 /**
  * Role-based entry. One codebase, two surfaces — pick which this device is.
@@ -17,7 +18,9 @@ export function RoleSelectScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.brandRow}>
-          <Text style={styles.mark}>◕</Text>
+          <View style={styles.logo}>
+            <Icon name="activity" size={20} color={colors.onAccent} strokeWidth={2.4} />
+          </View>
           <Text style={styles.brand}>Ambient Care</Text>
         </View>
 
@@ -30,7 +33,7 @@ export function RoleSelectScreen() {
         <Text style={styles.pick}>Which one is this?</Text>
 
         <BigButton
-          icon="👵"
+          icon="shield-plus"
           label="This is the home device"
           sublabel="Set it on the counter for Mom or Dad"
           variant="accent"
@@ -38,7 +41,7 @@ export function RoleSelectScreen() {
           style={{ marginBottom: space.md }}
         />
         <BigButton
-          icon="📱"
+          icon="phone"
           label="I'm the caregiver"
           sublabel="Check in on my loved one from my own phone"
           variant="neutral"
@@ -57,16 +60,24 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg, paddingTop: space.xl, flexGrow: 1, justifyContent: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.xl },
-  mark: { fontSize: 26, color: colors.accent },
-  brand: { fontSize: type.bodyLg, fontWeight: '800', color: colors.accentInk, letterSpacing: 0.3 },
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brand: { fontFamily: font.headingBold, fontSize: type.bodyLg, color: colors.accentInk, letterSpacing: 0.2 },
   headline: {
+    fontFamily: font.display,
     fontSize: type.headline + 4,
-    lineHeight: (type.headline + 4) * 1.12,
-    fontWeight: '800',
+    lineHeight: (type.headline + 4) * 1.14,
     color: colors.ink,
     letterSpacing: -0.5,
   },
   sub: {
+    fontFamily: font.body,
     fontSize: type.bodyLg,
     lineHeight: type.bodyLg * 1.4,
     color: colors.inkSoft,
@@ -74,9 +85,9 @@ const styles = StyleSheet.create({
     marginBottom: space.xl,
   },
   pick: {
+    fontFamily: font.bodyBold,
     fontSize: type.caption,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: colors.inkFaint,
     marginBottom: space.md,

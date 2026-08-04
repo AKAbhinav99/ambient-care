@@ -3,15 +3,20 @@
  *
  * Expo Go reality: remote push (APNs) tokens are not delivered in Expo Go on
  * recent SDKs — that needs a dev/production build. But *local* notifications work
- * fully in Expo Go, which is enough to demonstrate the two caregiver moments that
- * matter: a real-time high-priority alert, and the end-of-day digest. In
- * production these same payloads would arrive via APNs from the backend when a
- * senior-device event fires; the copy and severity logic below stay identical.
+ * fully in Expo Go, which is enough to demonstrate every caregiver moment that
+ * matters: real-time alerts, per-dose reminders, missed-dose warnings, and the
+ * end-of-day digest. In production these same payloads would arrive via APNs from
+ * the backend when a senior-device event fires; the copy and severity logic stay
+ * identical.
+ *
+ * Scheduled notifications are tagged with `data.kind` so we can cancel one family
+ * (e.g. dose reminders) without wiping another (e.g. the digest).
  */
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import type { CareEvent } from '../types';
+import type { CareEvent, Medication } from '../types';
+import { medTimes } from './adherence';
 
 Notifications.setNotificationHandler({
   handleNotification: async () =>
@@ -41,6 +46,16 @@ export async function ensureNotificationPermissions(): Promise<boolean> {
   return granted;
 }
 
+/** Cancel every scheduled notification tagged with the given `data.kind`. */
+export async function cancelByKind(kind: string): Promise<void> {
+  const all = await Notifications.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    all
+      .filter((n) => (n.content.data as { kind?: string } | undefined)?.kind === kind)
+      .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
 /** Fire an immediate local alert for a high-priority event. */
 export async function fireAlert(event: CareEvent, seniorName: string): Promise<void> {
   const ok = await ensureNotificationPermissions();
@@ -66,8 +81,37 @@ function alertTitle(event: CareEvent, name: string): string {
       return `${name} has been quiet a while`;
     case 'scan_mismatch':
       return `${name} scanned an unknown medicine`;
+    case 'missed_dose':
+      return `${name} may have missed a dose`;
+    case 'refill_low':
+      return `${name} is running low on a medication`;
     default:
       return `Update from ${name}`;
+  }
+}
+
+/** Schedule daily reminders on the senior device, one per med per dose time. */
+export async function scheduleDoseReminders(meds: Medication[]): Promise<void> {
+  const ok = await ensureNotificationPermissions();
+  if (!ok) return;
+  await cancelByKind('dose_reminder');
+  for (const med of meds) {
+    for (const time of medTimes(med)) {
+      const [h, m] = time.split(':').map((n) => Number(n));
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Time for ${med.friendlyName}`,
+          body: `${med.dosage}. Tap the home screen to mark it taken.`,
+          sound: true,
+          data: { kind: 'dose_reminder', medId: med.id },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: h || 0,
+          minute: m || 0,
+        },
+      });
+    }
   }
 }
 
@@ -75,7 +119,7 @@ function alertTitle(event: CareEvent, name: string): string {
 export async function scheduleDailyDigest(hour = 20, minute = 0): Promise<void> {
   const ok = await ensureNotificationPermissions();
   if (!ok) return;
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  await cancelByKind('digest');
   await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Daily summary ready',

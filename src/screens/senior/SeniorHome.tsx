@@ -5,8 +5,11 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../lib/store';
 import { useAmbientMonitor } from '../../hooks/useAmbientMonitor';
 import { say } from '../../lib/speech';
+import { scheduleDoseReminders } from '../../lib/notifications';
 import { BigButton } from '../../components/ui/BigButton';
-import { colors, space, type, radius } from '../../theme/tokens';
+import { DosePrompt } from '../../components/DosePrompt';
+import { Icon } from '../../components/ui/Icon';
+import { colors, space, type, radius, font } from '../../theme/tokens';
 import { clockTime, longDate, greeting } from '../../lib/time';
 import type { SeniorProps } from '../../navigation/types';
 
@@ -15,15 +18,26 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
   const checkIn = useStore((s) => s.checkIn);
   const clearCheckIn = useStore((s) => s.clearCheckIn);
   const logEvent = useStore((s) => s.logEvent);
+  const medications = useStore((s) => s.medications);
+  const reconcileDoses = useStore((s) => s.reconcileDoses);
 
   const [now, setNow] = useState(new Date());
   const ambient = useAmbientMonitor();
 
-  // Tick the clock.
+  // Tick the clock and, on each tick, reconcile any lapsed doses to "missed".
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 10000);
+    reconcileDoses();
+    const t = setInterval(() => {
+      setNow(new Date());
+      reconcileDoses();
+    }, 10000);
     return () => clearInterval(t);
-  }, []);
+  }, [reconcileDoses]);
+
+  // Keep on-device dose reminders in sync with the current med list.
+  useEffect(() => {
+    if (medications.length) scheduleDoseReminders(medications);
+  }, [medications]);
 
   // Run ambient monitoring only while this screen is in front (avoids fighting
   // the camera/voice screens for the audio session), and only if consented.
@@ -59,7 +73,7 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Settings affordance — small, out of the way */}
         <Pressable style={styles.gear} onPress={() => navigation.navigate('SeniorSettings')} hitSlop={12}>
-          <Text style={styles.gearIcon}>⚙︎</Text>
+          <Icon name="settings" size={26} color={colors.inkFaint} strokeWidth={2} />
         </Pressable>
 
         {/* Clock + greeting: the calm idle state */}
@@ -76,15 +90,19 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
           <Pressable style={styles.hello} onPress={acknowledgeCheckIn}>
             <Text style={styles.helloText}>{checkIn}</Text>
             <View style={styles.helloBtn}>
-              <Text style={styles.helloBtnText}>Thank you 👋</Text>
+              <Icon name="heart" size={20} color={colors.onUrgent} fill={colors.onUrgent} />
+              <Text style={styles.helloBtnText}>Thank you</Text>
             </View>
           </Pressable>
         ) : null}
 
+        {/* Time-for-your-pills prompt (only shows when a dose is due) */}
+        <DosePrompt now={now.getTime()} />
+
         {/* Big actions */}
         <View style={styles.actions}>
           <BigButton
-            icon="📷"
+            icon="camera"
             label="Scan my medicine"
             sublabel="Point the camera at the bottle"
             variant="accent"
@@ -92,12 +110,20 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
             onPress={() => navigation.navigate('Scan')}
           />
           <BigButton
-            icon="🎙️"
+            icon="mic"
             label="Talk to me"
             sublabel="Ask for your pills, or to call family"
             variant="neutral"
             size="xl"
             onPress={() => navigation.navigate('Voice')}
+            style={{ marginTop: space.md }}
+          />
+          <BigButton
+            icon="shield-plus"
+            label="Emergency Card"
+            sublabel="Your medicines & contacts for helpers"
+            variant="neutral"
+            onPress={() => navigation.navigate('EmergencyCard')}
             style={{ marginTop: space.md }}
           />
         </View>
@@ -147,9 +173,9 @@ const styles = StyleSheet.create({
   gearIcon: { fontSize: 26, color: colors.inkFaint },
 
   clockBlock: { alignItems: 'center', marginTop: space.md, marginBottom: space.xl },
-  greeting: { fontSize: type.seniorGreeting, fontWeight: '700', color: colors.ink, textAlign: 'center' },
-  clock: { fontSize: type.seniorClock, fontWeight: '900', color: colors.accentInk, letterSpacing: -2, marginTop: space.xs },
-  date: { fontSize: type.seniorBody, color: colors.inkSoft, marginTop: space.xs },
+  greeting: { fontFamily: font.displaySemi, fontSize: type.seniorGreeting, color: colors.ink, textAlign: 'center' },
+  clock: { fontFamily: font.display, fontSize: type.seniorClock, color: colors.accentInk, letterSpacing: -2, marginTop: space.xs },
+  date: { fontFamily: font.body, fontSize: type.seniorBody, color: colors.inkSoft, marginTop: space.xs },
 
   hello: {
     backgroundColor: colors.urgentSoft,
@@ -160,15 +186,18 @@ const styles = StyleSheet.create({
     marginBottom: space.lg,
     alignItems: 'center',
   },
-  helloText: { fontSize: type.seniorBody, fontWeight: '700', color: colors.ink, textAlign: 'center', lineHeight: type.seniorBody * 1.3 },
+  helloText: { fontFamily: font.headingMed, fontSize: type.seniorBody, color: colors.ink, textAlign: 'center', lineHeight: type.seniorBody * 1.3 },
   helloBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
     marginTop: space.md,
     backgroundColor: colors.urgent,
     borderRadius: radius.pill,
     paddingVertical: space.sm,
     paddingHorizontal: space.xl,
   },
-  helloBtnText: { color: colors.onUrgent, fontSize: type.bodyLg, fontWeight: '800' },
+  helloBtnText: { color: colors.onUrgent, fontFamily: font.bodyBold, fontSize: type.bodyLg },
 
   actions: { marginBottom: space.lg },
 

@@ -18,7 +18,9 @@
         "NSMicrophoneUsageDescription": "Ambient Care listens for falls, distress, and unusual silence to keep your loved one safe. Audio is analyzed on the device and is not recorded or stored.",
         "NSCameraUsageDescription": "The camera is used briefly to scan a medicine bottle so we can confirm it matches your medication list. No photos are saved.",
         "NSSpeechRecognitionUsageDescription": "Speech is used on the device to understand simple spoken requests like asking for your medicine.",
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -28,7 +30,11 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "permissions": ["RECORD_AUDIO", "CAMERA", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "RECORD_AUDIO",
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -48,7 +54,8 @@
           "microphonePermission": "Ambient Care listens for safety events (falls, distress, unusual silence). Audio is analyzed on the device and never recorded or stored."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font"
     ]
   }
 }

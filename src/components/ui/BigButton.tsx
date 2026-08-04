@@ -1,13 +1,14 @@
 import React, { useRef } from 'react';
 import { Animated, Pressable, Text, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, radius, space, shadow, type } from '../../theme/tokens';
+import { colors, radius, space, shadow, type, font } from '../../theme/tokens';
+import { Icon, type IconName } from './Icon';
 
 type Variant = 'accent' | 'urgent' | 'neutral' | 'ghost';
 
 interface BigButtonProps {
   label: string;
   sublabel?: string;
-  icon?: string; // emoji glyph — no icon font dependency, reads big and clear
+  icon?: IconName;
   onPress: () => void;
   variant?: Variant;
   size?: 'md' | 'xl'; // xl = senior-scale
@@ -18,7 +19,7 @@ interface BigButtonProps {
 const palette: Record<Variant, { bg: string; fg: string; border: string }> = {
   accent: { bg: colors.accent, fg: colors.onAccent, border: colors.accent },
   urgent: { bg: colors.urgent, fg: colors.onUrgent, border: colors.urgent },
-  neutral: { bg: colors.surface, fg: colors.ink, border: colors.line },
+  neutral: { bg: colors.surface, fg: colors.ink, border: colors.lineStrong },
   ghost: { bg: 'transparent', fg: colors.accentInk, border: colors.accentSoft },
 };
 
@@ -35,6 +36,10 @@ export function BigButton({
   const scale = useRef(new Animated.Value(1)).current;
   const p = palette[variant];
   const isXl = size === 'xl';
+  const iconSize = isXl ? 34 : 22;
+  const onColor = variant === 'accent' || variant === 'urgent';
+  const wellBg = onColor ? 'rgba(255,255,255,0.18)' : colors.accentSoft;
+  const iconColor = onColor ? p.fg : colors.accentInk;
 
   const animate = (to: number) =>
     Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
@@ -45,7 +50,7 @@ export function BigButton({
         accessibilityRole="button"
         accessibilityLabel={sublabel ? `${label}. ${sublabel}` : label}
         onPress={onPress}
-        onPressIn={() => animate(0.96)}
+        onPressIn={() => animate(0.97)}
         onPressOut={() => animate(1)}
         disabled={disabled}
         style={[
@@ -57,9 +62,14 @@ export function BigButton({
             opacity: disabled ? 0.45 : 1,
           },
           variant !== 'ghost' && variant !== 'neutral' && shadow.lift,
+          variant === 'neutral' && shadow.card,
         ]}
       >
-        {icon ? <Text style={[styles.icon, isXl && styles.iconXl]}>{icon}</Text> : null}
+        {icon ? (
+          <View style={[styles.iconWrap, isXl && styles.iconWrapXl, isXl && { backgroundColor: wellBg }]}>
+            <Icon name={icon} size={iconSize} color={isXl ? iconColor : p.fg} strokeWidth={isXl ? 2.2 : 2} />
+          </View>
+        ) : null}
         <View style={styles.labels}>
           <Text style={[styles.label, isXl && styles.labelXl, { color: p.fg }]}>{label}</Text>
           {sublabel ? (
@@ -79,20 +89,25 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     paddingHorizontal: space.lg,
     borderRadius: radius.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     minHeight: 60,
   },
   xl: {
-    paddingVertical: space.xl,
-    paddingHorizontal: space.xl,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.lg,
     borderRadius: radius.lg,
-    minHeight: 132,
+    minHeight: 112,
+    gap: space.lg,
+  },
+  iconWrap: { alignItems: 'center', justifyContent: 'center' },
+  iconWrapXl: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
   },
   labels: { flexShrink: 1 },
-  icon: { fontSize: 26 },
-  iconXl: { fontSize: 56 },
-  label: { fontSize: type.bodyLg, fontWeight: '700' },
-  labelXl: { fontSize: type.seniorTitle, fontWeight: '800' },
-  sub: { fontSize: type.caption, fontWeight: '500', opacity: 0.85, marginTop: 2 },
-  subXl: { fontSize: type.seniorBody, opacity: 0.9, marginTop: 4 },
+  label: { fontFamily: font.headingBold, fontSize: type.bodyLg },
+  labelXl: { fontFamily: font.headingBold, fontSize: type.title },
+  sub: { fontFamily: font.body, fontSize: type.caption, opacity: 0.9, marginTop: 2 },
+  subXl: { fontFamily: font.body, fontSize: type.bodyLg, opacity: 0.92, marginTop: 4 },
 });

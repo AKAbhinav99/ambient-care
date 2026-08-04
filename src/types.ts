@@ -2,6 +2,12 @@
 
 export type Role = 'caregiver' | 'senior';
 
+export interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
 export interface LovedOne {
   id: string;
   name: string;
@@ -10,6 +16,16 @@ export interface LovedOne {
   paired: boolean;
   ambientOptIn: boolean; // explicit consent to ambient audio monitoring
   alwaysOnMode: boolean; // "Always-on" (kiosk-ish) vs "Normal mode"
+
+  // --- Medical profile (powers the Emergency Med Card) ---
+  dob?: string; // ISO date; age is derived
+  bloodType?: string; // "O+", "AB-", …
+  allergies?: string[]; // drug/food allergies — shown in red
+  conditions?: string[]; // chronic conditions
+  emergencyContacts?: EmergencyContact[];
+  doctor?: string; // "Dr. Ede — (512) 555-0110"
+  pharmacy?: string; // "CVS on Main — (512) 555-0170"
+  medicalNotes?: string; // freeform (e.g. "pacemaker since 2019")
 }
 
 export type MedSchedule = 'morning' | 'midday' | 'evening' | 'bedtime' | 'asNeeded';
@@ -22,6 +38,25 @@ export interface Medication {
   friendlyName: string; // spoken back: "your blood pressure medicine"
   barcode?: string; // scanned barcode to match against (real, works in Expo Go)
   photoUri?: string; // optional photo of the pill/bottle
+
+  genericName?: string; // normalized key for interaction lookup ("lisinopril")
+  times?: string[]; // HH:mm dose times; defaulted from `schedule`
+  critical?: boolean; // missing this dose escalates to urgent
+  pillsOnHand?: number; // remaining supply, for refill prediction
+  refillThreshold?: number; // alert when pillsOnHand drops to/below this
+  createdAt?: number; // epoch ms the med was added; doses before this aren't judged
+}
+
+export type DoseStatus = 'taken' | 'missed' | 'skipped';
+
+/** One scheduled dose and what became of it. */
+export interface DoseLog {
+  id: string;
+  medId: string;
+  scheduledAt: number; // epoch ms of the intended dose time
+  status: DoseStatus;
+  takenAt?: number; // epoch ms when actually taken
+  source: 'scan' | 'manual' | 'auto'; // how the status was recorded
 }
 
 export type EventKind =
@@ -33,6 +68,8 @@ export type EventKind =
   | 'loud_sound' // possible fall/crash
   | 'silence_anomaly' // no activity for X hours
   | 'activity' // heartbeat: any detected activity
+  | 'missed_dose' // a scheduled dose lapsed untaken
+  | 'refill_low' // a medication is running low
   | 'pairing';
 
 export type EventSeverity = 'info' | 'checkIn' | 'urgent';
@@ -44,6 +81,7 @@ export interface CareEvent {
   title: string; // caregiver-facing one-liner
   detail?: string;
   at: number; // epoch ms
+  acknowledgedAt?: number; // set when a caregiver acknowledges (stops escalation)
 }
 
 export interface CareState {
@@ -51,6 +89,7 @@ export interface CareState {
   lovedOne: LovedOne | null;
   medications: Medication[];
   events: CareEvent[]; // newest first
+  doseLogs: DoseLog[]; // dose history, newest first
   lastActivityAt: number | null;
   ambientRunning: boolean;
   checkIn: string | null; // a warm note the caregiver sent, awaiting the senior

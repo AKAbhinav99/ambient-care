@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
-import { colors, radius, space, shadow, type } from '../../theme/tokens';
+import { colors, radius, space, shadow, type, font } from '../../theme/tokens';
 
 interface CardProps {
   children: React.ReactNode;
@@ -25,9 +25,9 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   section: {
+    fontFamily: font.bodyBold,
     fontSize: type.caption,
-    fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     color: colors.inkFaint,
     marginBottom: space.sm,

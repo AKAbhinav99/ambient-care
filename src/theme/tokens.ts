@@ -1,53 +1,77 @@
 /**
  * Design tokens for Ambient Care.
  *
- * Direction: "warm paper + calm clay" — a soft, reassuring light palette for a
+ * Direction: "warm clinical" — a calm, high-contrast, accessible system for a
  * product two very different people use: an 80-year-old at their kitchen counter,
- * and their adult child glancing at a phone between meetings. Nothing clinical,
- * nothing alarming until it needs to be. Status color is semantic (calm / check-in
- * / urgent), never decorative.
+ * and their adult child glancing at a phone between meetings. Warm paper keeps it
+ * human; disciplined ink contrast and a single trustworthy teal keep it credible.
+ * Status color is semantic (calm / check-in / urgent), never decorative.
+ *
+ * Typography: Lexend (readability-optimized, used for headings + the large senior
+ * text) paired with Source Sans 3 (body/UI). Both load in App.tsx; a base-font
+ * patch (theme/applyFonts) sets Source Sans 3 on every Text by default.
  */
 
 export const colors = {
   // Surfaces
-  paper: '#FBF7F0', // warm off-white background
+  paper: '#F7F4EF', // warm off-white background
   surface: '#FFFFFF', // raised cards
-  surfaceSunken: '#F1EADE', // insets, input wells
-  line: '#E7DECF', // hairline dividers
+  surfaceSunken: '#EEEAE1', // insets, input wells
+  line: '#E3DDD2', // hairline dividers
+  lineStrong: '#D5CDBF', // stronger separators / input borders
 
-  // Ink
-  ink: '#2A2420', // primary text (warm near-black)
-  inkSoft: '#6F655B', // secondary text
-  inkFaint: '#A69C90', // tertiary / captions
+  // Ink (warm neutrals, tuned for >= 4.5:1 on paper/surface)
+  ink: '#1F1A15', // primary text
+  inkSoft: '#655C52', // secondary text
+  inkFaint: '#938A7E', // tertiary / captions
 
-  // Brand accent — a confident deep teal, used for actions & "connected"
-  accent: '#0E7C6B',
-  accentSoft: '#D7EBE6',
-  accentInk: '#0A5A4E',
+  // Brand accent — a confident, trustworthy teal
+  accent: '#0E7A6A',
+  accentSoft: '#D6E9E4',
+  accentInk: '#0A564A',
 
-  // Semantic status (the whole point of the product)
-  calm: '#2F9E6E', // green — all is well
-  calmSoft: '#DCF0E4',
-  checkIn: '#E0A11E', // amber — worth a look
-  checkInSoft: '#FBEBCB',
-  urgent: '#D64545', // red — act now
-  urgentSoft: '#FADCDA',
+  // Semantic status
+  calm: '#2E9A67', // green — all is well
+  calmSoft: '#DBEFE3',
+  calmInk: '#1C6B45',
+  checkIn: '#B77C17', // amber — worth a look (darkened for white-on-color)
+  checkInSoft: '#FAEBCB',
+  checkInInk: '#8A5B10',
+  urgent: '#C43B36', // red — act now
+  urgentSoft: '#F8D9D6',
+  urgentInk: '#8E2723',
 
   // On-color text
   onAccent: '#FFFFFF',
   onUrgent: '#FFFFFF',
+  onStatus: '#FFFFFF',
+
+  // Focus ring
+  focus: '#0E7A6A',
 } as const;
 
 export type StatusKey = 'calm' | 'checkIn' | 'urgent';
 
 export const statusMeta: Record<
   StatusKey,
-  { label: string; color: string; soft: string; note: string }
+  { label: string; color: string; soft: string; ink: string; note: string }
 > = {
-  calm: { label: 'All is well', color: colors.calm, soft: colors.calmSoft, note: 'Normal activity today' },
-  checkIn: { label: 'Worth a check-in', color: colors.checkIn, soft: colors.checkInSoft, note: 'Something to glance at' },
-  urgent: { label: 'Needs attention', color: colors.urgent, soft: colors.urgentSoft, note: 'Please reach out now' },
+  calm: { label: 'All is well', color: colors.calm, soft: colors.calmSoft, ink: colors.calmInk, note: 'Normal activity today' },
+  checkIn: { label: 'Worth a check-in', color: colors.checkIn, soft: colors.checkInSoft, ink: colors.checkInInk, note: 'Something to glance at' },
+  urgent: { label: 'Needs attention', color: colors.urgent, soft: colors.urgentSoft, ink: colors.urgentInk, note: 'Please reach out now' },
 };
+
+// Typography families (loaded via @expo-google-fonts in App.tsx)
+export const font = {
+  display: 'Lexend_700Bold',
+  displaySemi: 'Lexend_600SemiBold',
+  heading: 'Lexend_600SemiBold',
+  headingBold: 'Lexend_700Bold',
+  headingMed: 'Lexend_500Medium',
+  body: 'SourceSans3_400Regular',
+  bodyMed: 'SourceSans3_600SemiBold',
+  bodyBold: 'SourceSans3_700Bold',
+} as const;
 
 // Spacing scale (intentional rhythm, not uniform padding everywhere)
 export const space = {
@@ -61,15 +85,15 @@ export const space = {
 
 export const radius = {
   sm: 10,
-  md: 18,
-  lg: 28,
+  md: 16,
+  lg: 24,
   pill: 999,
 } as const;
 
 // Two type scales: a normal one for the caregiver, and a much larger one for the
 // senior surface (readability from an arm's length, no reading glasses needed).
 export const type = {
-  caption: 13,
+  caption: 14,
   body: 17,
   bodyLg: 20,
   title: 24,
@@ -78,23 +102,24 @@ export const type = {
   // Senior-facing — deliberately oversized
   seniorBody: 26,
   seniorTitle: 40,
-  seniorClock: 88,
-  seniorGreeting: 34,
+  seniorClock: 84,
+  seniorGreeting: 32,
 } as const;
 
+// Elevation — soft, warm, layered (not the harsh default RN shadow)
 export const shadow = {
   card: {
     shadowColor: '#3A2E1E',
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   lift: {
     shadowColor: '#3A2E1E',
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 5,
   },
 } as const;

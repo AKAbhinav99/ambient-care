@@ -1,14 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useStore, computeStatus } from '../../lib/store';
 import { buildDigest, scheduleDailyDigest } from '../../lib/notifications';
+import { checkInteractions } from '../../lib/interactions';
+import { adherenceStats } from '../../lib/adherence';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Card, SectionLabel } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { LogRow } from '../../components/LogRow';
-import { colors, space, type, radius } from '../../theme/tokens';
+import { Icon } from '../../components/ui/Icon';
+import { colors, space, type, radius, font } from '../../theme/tokens';
 import { relativeTime, greeting } from '../../lib/time';
 import type { CaregiverProps } from '../../navigation/types';
 
@@ -16,7 +20,25 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
   const state = useStore();
   const { lovedOne, medications, events } = state;
   const status = useMemo(() => computeStatus(state), [state]);
+  const reconcileDoses = useStore((s) => s.reconcileDoses);
+  const acknowledgeEvent = useStore((s) => s.acknowledgeEvent);
   const [digestOn, setDigestOn] = useState(false);
+
+  // Catch any lapsed doses whenever the caregiver opens the dashboard.
+  useFocusEffect(
+    useCallback(() => {
+      reconcileDoses();
+    }, [reconcileDoses]),
+  );
+
+  const warnings = useMemo(() => checkInteractions(medications), [medications]);
+  const adherence = useMemo(
+    () => adherenceStats(medications, state.doseLogs, Date.now(), 7),
+    [medications, state.doseLogs],
+  );
+  const unackedUrgent = events.find(
+    (e) => e.severity === 'urgent' && !e.acknowledgedAt && Date.now() - e.at < 24 * 3600 * 1000,
+  );
 
   const alertsToday = events.filter(
     (e) => Date.now() - e.at < 24 * 3600 * 1000 && e.severity !== 'info',
@@ -71,14 +93,30 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
 
         {!lovedOne.paired ? (
           <Pressable onPress={() => navigation.navigate('LovedOne')} style={styles.pairingWarn}>
-            <Text style={styles.pairingWarnText}>
-              ⚠️ Device not paired yet — tap to finish setup
-            </Text>
+            <Icon name="alert-triangle" size={18} color={colors.checkInInk} strokeWidth={2.2} />
+            <Text style={styles.pairingWarnText}>Device not paired yet — tap to finish setup</Text>
           </Pressable>
         ) : null}
 
         <View style={{ height: space.lg }} />
         <StatusBadge status={status.key} reason={status.reason} />
+
+        {unackedUrgent ? (
+          <Pressable style={styles.ackBtn} onPress={() => acknowledgeEvent(unackedUrgent.id)}>
+            <Icon name="check" size={18} color={colors.onUrgent} strokeWidth={2.6} />
+            <Text style={styles.ackText}>Acknowledge — {unackedUrgent.title}</Text>
+          </Pressable>
+        ) : null}
+
+        {warnings.length > 0 ? (
+          <Pressable style={styles.warnBanner} onPress={() => navigation.navigate('Interactions')}>
+            <Icon name="alert-triangle" size={20} color={colors.checkInInk} strokeWidth={2.2} />
+            <Text style={styles.warnBannerText}>
+              {warnings.length} medication interaction{warnings.length > 1 ? 's' : ''} to review
+            </Text>
+            <Icon name="chevron-right" size={20} color={colors.inkFaint} />
+          </Pressable>
+        ) : null}
 
         {/* Stat rhythm — three uneven weights, not a uniform grid */}
         <View style={styles.stats}>
@@ -98,9 +136,22 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
           </Pressable>
         </Card>
 
+        <Pressable style={styles.adherenceCard} onPress={() => navigation.navigate('Adherence')}>
+          <Text style={styles.adhBig}>{adherence.adherencePct}%</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.adhLine}>
+              {adherence.takenCount} taken · {adherence.missedCount} missed this week
+            </Text>
+            <Text style={styles.adhSub}>
+              {adherence.currentStreak}-day streak · tap for details
+            </Text>
+          </View>
+          <Icon name="chevron-right" size={20} color={colors.inkFaint} />
+        </Pressable>
+
         <View style={styles.actions}>
           <BigButton
-            icon="❤️"
+            icon="heart"
             label="Send a hello"
             variant="accent"
             onPress={onCheckIn}
@@ -109,17 +160,33 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
         </View>
         <View style={styles.actionRow}>
           <BigButton
-            icon="💊"
+            icon="pill"
             label="Medications"
             variant="neutral"
             onPress={() => navigation.navigate('Medications')}
             style={{ flex: 1 }}
           />
           <BigButton
-            icon="⚙️"
+            icon="user"
             label="Loved one"
             variant="neutral"
             onPress={() => navigation.navigate('LovedOne')}
+            style={{ flex: 1 }}
+          />
+        </View>
+        <View style={styles.actionRow}>
+          <BigButton
+            icon="trending-up"
+            label="Adherence"
+            variant="neutral"
+            onPress={() => navigation.navigate('Adherence')}
+            style={{ flex: 1 }}
+          />
+          <BigButton
+            icon="shield-plus"
+            label="Emergency card"
+            variant="neutral"
+            onPress={() => navigation.navigate('EmergencyCard')}
             style={{ flex: 1 }}
           />
         </View>
@@ -189,7 +256,7 @@ function EmptyState({ navigation }: { navigation: CaregiverProps<'CaregiverHome'
           recognize them.
         </Text>
         <BigButton
-          icon="➕"
+          icon="plus"
           label="Add a loved one"
           variant="accent"
           onPress={() => navigation.navigate('LovedOne')}
@@ -206,10 +273,13 @@ function EmptyState({ navigation }: { navigation: CaregiverProps<'CaregiverHome'
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg },
-  greeting: { fontSize: type.body, color: colors.inkSoft, fontWeight: '500' },
-  headline: { fontSize: type.headline, fontWeight: '800', color: colors.ink, letterSpacing: -0.4 },
+  greeting: { fontFamily: font.body, fontSize: type.body, color: colors.inkSoft },
+  headline: { fontFamily: font.display, fontSize: type.headline, color: colors.ink, letterSpacing: -0.4 },
   rel: { fontSize: type.body, fontWeight: '500', color: colors.inkFaint },
   pairingWarn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
     marginTop: space.md,
     backgroundColor: colors.checkInSoft,
     borderRadius: radius.sm,
@@ -217,7 +287,46 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.checkIn,
   },
-  pairingWarnText: { color: colors.ink, fontWeight: '600', fontSize: type.body },
+  pairingWarnText: { flex: 1, color: colors.checkInInk, fontFamily: font.bodyMed, fontSize: type.body },
+
+  ackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.sm,
+    backgroundColor: colors.urgent,
+    borderRadius: radius.md,
+    padding: space.md,
+  },
+  ackText: { flex: 1, color: colors.onUrgent, fontFamily: font.bodyBold, fontSize: type.body },
+
+  warnBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.sm,
+    backgroundColor: colors.checkInSoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.checkIn,
+    padding: space.md,
+  },
+  warnBannerText: { flex: 1, color: colors.checkInInk, fontFamily: font.bodyMed, fontSize: type.body },
+
+  adherenceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    marginTop: space.md,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: space.lg,
+  },
+  adhBig: { fontFamily: font.display, fontSize: type.headline, color: colors.calmInk },
+  adhLine: { fontFamily: font.bodyMed, fontSize: type.body, color: colors.ink },
+  adhSub: { fontFamily: font.body, fontSize: type.caption, color: colors.inkFaint, marginTop: 2 },
 
   stats: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
   stat: {
@@ -229,8 +338,8 @@ const styles = StyleSheet.create({
     padding: space.md,
   },
   statBig: { flex: 1.6 },
-  statValue: { fontSize: type.bodyLg, fontWeight: '800', color: colors.ink },
-  statLabel: { fontSize: type.caption, color: colors.inkFaint, marginTop: 2 },
+  statValue: { fontFamily: font.headingBold, fontSize: type.bodyLg, color: colors.ink },
+  statLabel: { fontFamily: font.body, fontSize: type.caption, color: colors.inkFaint, marginTop: 2 },
 
   digest: { marginTop: space.md },
   digestText: { fontSize: type.bodyLg, color: colors.ink, lineHeight: type.bodyLg * 1.35, fontWeight: '500' },

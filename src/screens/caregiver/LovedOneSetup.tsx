@@ -5,8 +5,10 @@ import { useStore } from '../../lib/store';
 import { Card, SectionLabel } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Field } from '../../components/ui/Field';
-import { colors, space, type, radius } from '../../theme/tokens';
+import { Icon } from '../../components/ui/Icon';
+import { colors, space, type, radius, font } from '../../theme/tokens';
 import type { CaregiverProps } from '../../navigation/types';
+import type { EmergencyContact, LovedOne } from '../../types';
 
 export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
   const lovedOne = useStore((s) => s.lovedOne);
@@ -32,7 +34,7 @@ export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
             />
           </Card>
           <BigButton
-            icon="✓"
+            icon="check"
             label="Create profile"
             variant="accent"
             disabled={!name.trim() || !rel.trim()}
@@ -57,7 +59,9 @@ export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
         <Card style={styles.pairCard}>
           {lovedOne.paired ? (
             <View style={styles.pairedRow}>
-              <Text style={styles.pairedIcon}>🔗</Text>
+              <View style={styles.pairedIconWell}>
+                <Icon name="link" size={22} color={colors.calmInk} strokeWidth={2} />
+              </View>
               <View>
                 <Text style={styles.pairedTitle}>Device paired</Text>
                 <Text style={styles.pairedSub}>{lovedOne.name}'s home device is linked.</Text>
@@ -116,8 +120,10 @@ export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
           </Text>
         </Card>
 
+        <MedicalProfile lovedOne={lovedOne} navigation={navigation} />
+
         <BigButton
-          icon="←"
+          icon="arrow-left"
           label="Back to dashboard"
           variant="neutral"
           onPress={() => navigation.navigate('CaregiverHome')}
@@ -125,6 +131,111 @@ export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
         />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function fromCsv(s: string): string[] {
+  return s
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+function MedicalProfile({
+  lovedOne,
+  navigation,
+}: {
+  lovedOne: LovedOne;
+  navigation: CaregiverProps<'LovedOne'>['navigation'];
+}) {
+  const updateLovedOne = useStore((s) => s.updateLovedOne);
+  const [dob, setDob] = useState(lovedOne.dob ?? '');
+  const [bloodType, setBloodType] = useState(lovedOne.bloodType ?? '');
+  const [allergies, setAllergies] = useState((lovedOne.allergies ?? []).join(', '));
+  const [conditions, setConditions] = useState((lovedOne.conditions ?? []).join(', '));
+  const [doctor, setDoctor] = useState(lovedOne.doctor ?? '');
+  const [pharmacy, setPharmacy] = useState(lovedOne.pharmacy ?? '');
+  const [notes, setNotes] = useState(lovedOne.medicalNotes ?? '');
+  const [contacts, setContacts] = useState<EmergencyContact[]>(lovedOne.emergencyContacts ?? []);
+  const [cName, setCName] = useState('');
+  const [cRel, setCRel] = useState('');
+  const [cPhone, setCPhone] = useState('');
+
+  const addContact = () => {
+    if (!cName.trim() || !cPhone.trim()) return;
+    setContacts([
+      ...contacts,
+      { name: cName.trim(), relationship: cRel.trim() || 'Contact', phone: cPhone.trim() },
+    ]);
+    setCName('');
+    setCRel('');
+    setCPhone('');
+  };
+
+  const save = () => {
+    updateLovedOne({
+      dob: dob.trim() || undefined,
+      bloodType: bloodType.trim() || undefined,
+      allergies: fromCsv(allergies),
+      conditions: fromCsv(conditions),
+      doctor: doctor.trim() || undefined,
+      pharmacy: pharmacy.trim() || undefined,
+      medicalNotes: notes.trim() || undefined,
+      emergencyContacts: contacts,
+    });
+    Alert.alert('Saved', 'Emergency card updated.');
+  };
+
+  return (
+    <>
+      <SectionLabel>Medical profile (emergency card)</SectionLabel>
+      <Card style={{ marginBottom: space.lg }}>
+        <Field label="Date of birth" value={dob} onChangeText={setDob} placeholder="1944-03-12" autoCapitalize="none" />
+        <Field label="Blood type" value={bloodType} onChangeText={setBloodType} placeholder="O+" autoCapitalize="characters" />
+        <Field label="Allergies (comma-separated)" value={allergies} onChangeText={setAllergies} placeholder="Penicillin, Sulfa" />
+        <Field
+          label="Conditions (comma-separated)"
+          value={conditions}
+          onChangeText={setConditions}
+          placeholder="Atrial fibrillation, Diabetes"
+        />
+        <Field label="Doctor" value={doctor} onChangeText={setDoctor} placeholder="Dr. Ede — (512) 555-0140" />
+        <Field label="Pharmacy" value={pharmacy} onChangeText={setPharmacy} placeholder="CVS on Main — (512) 555-0170" />
+        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Pacemaker since 2019" />
+
+        <Text style={styles.profileLabel}>Emergency contacts</Text>
+        {contacts.map((c, i) => (
+          <View key={`${c.phone}-${i}`} style={styles.contactRow}>
+            <Text style={styles.contactText}>
+              {c.name} · {c.relationship} · {c.phone}
+            </Text>
+            <Pressable onPress={() => setContacts(contacts.filter((_, idx) => idx !== i))} hitSlop={8}>
+              <Text style={styles.remove}>Remove</Text>
+            </Pressable>
+          </View>
+        ))}
+        <Field label="Contact name" value={cName} onChangeText={setCName} placeholder="Alex Rivera" autoCapitalize="words" />
+        <Field label="Relationship" value={cRel} onChangeText={setCRel} placeholder="Daughter" autoCapitalize="words" />
+        <Field
+          label="Phone"
+          value={cPhone}
+          onChangeText={setCPhone}
+          placeholder="+15125550110"
+          autoCapitalize="none"
+          keyboardType="phone-pad"
+        />
+        <BigButton label="Add contact" variant="ghost" onPress={addContact} />
+
+        <View style={{ height: space.md }} />
+        <BigButton label="Save profile" variant="accent" onPress={save} />
+        <BigButton
+          label="Preview emergency card"
+          variant="neutral"
+          onPress={() => navigation.navigate('EmergencyCard')}
+          style={{ marginTop: space.sm }}
+        />
+      </Card>
+    </>
   );
 }
 
@@ -155,14 +266,14 @@ function ToggleRow({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg },
-  title: { fontSize: type.headline, fontWeight: '800', color: colors.ink },
-  sub: { fontSize: type.body, color: colors.inkFaint, marginBottom: space.xl },
+  title: { fontFamily: font.display, fontSize: type.headline, color: colors.ink },
+  sub: { fontFamily: font.body, fontSize: type.body, color: colors.inkFaint, marginBottom: space.xl },
 
   pairCard: { marginBottom: space.lg, alignItems: 'center' },
   codeLabel: { fontSize: type.caption, color: colors.inkSoft, fontWeight: '600' },
   code: {
+    fontFamily: font.display,
     fontSize: 44,
-    fontWeight: '900',
     letterSpacing: 8,
     color: colors.accentInk,
     marginVertical: space.sm,
@@ -170,9 +281,26 @@ const styles = StyleSheet.create({
   codeHint: { fontSize: type.caption, color: colors.inkFaint, textAlign: 'center', lineHeight: type.caption * 1.5 },
   demoPair: { marginTop: space.md },
   link: { color: colors.accentInk, fontWeight: '700', fontSize: type.body },
+
+  profileLabel: { fontSize: type.caption, fontWeight: '700', color: colors.inkSoft, marginTop: space.sm, marginBottom: space.xs },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: space.xs,
+  },
+  contactText: { flex: 1, fontSize: type.body, color: colors.ink },
+  remove: { color: colors.urgent, fontWeight: '600', fontSize: type.caption },
   pairedRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  pairedIcon: { fontSize: 30 },
-  pairedTitle: { fontSize: type.bodyLg, fontWeight: '800', color: colors.calm },
+  pairedIconWell: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.calmSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pairedTitle: { fontFamily: font.headingBold, fontSize: type.bodyLg, color: colors.calmInk },
   pairedSub: { fontSize: type.body, color: colors.inkSoft },
 
   toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space.xs },
