@@ -90,8 +90,18 @@ function alertTitle(event: CareEvent, name: string): string {
   }
 }
 
-/** Schedule daily reminders on the senior device, one per med per dose time. */
-export async function scheduleDoseReminders(meds: Medication[]): Promise<void> {
+/** Localized copy for a dose reminder, supplied by the senior surface's active language. */
+export interface DoseReminderText {
+  title: (friendlyName: string) => string;
+  body: (dosage: string) => string;
+}
+
+/**
+ * Schedule daily reminders on the senior device, one per med per dose time.
+ * `text` carries the loved one's language (the senior surface passes it from the
+ * i18n catalog) so reminders speak in their language.
+ */
+export async function scheduleDoseReminders(meds: Medication[], text: DoseReminderText): Promise<void> {
   const ok = await ensureNotificationPermissions();
   if (!ok) return;
   await cancelByKind('dose_reminder');
@@ -100,8 +110,8 @@ export async function scheduleDoseReminders(meds: Medication[]): Promise<void> {
       const [h, m] = time.split(':').map((n) => Number(n));
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `Time for ${med.friendlyName}`,
-          body: `${med.dosage}. Tap the home screen to mark it taken.`,
+          title: text.title(med.friendlyName),
+          body: text.body(med.dosage),
           sound: true,
           data: { kind: 'dose_reminder', medId: med.id },
         },

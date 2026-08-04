@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { useStore } from '../../lib/store';
+import { useT, defaultTtsFor } from '../../i18n';
 import { useAmbientMonitor } from '../../hooks/useAmbientMonitor';
 import { say } from '../../lib/speech';
 import { scheduleDoseReminders } from '../../lib/notifications';
@@ -10,7 +11,7 @@ import { BigButton } from '../../components/ui/BigButton';
 import { DosePrompt } from '../../components/DosePrompt';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
-import { clockTime, longDate, greeting } from '../../lib/time';
+import { clockTime, longDate, partOfDay } from '../../lib/time';
 import type { SeniorProps } from '../../navigation/types';
 
 export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
@@ -20,6 +21,7 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
   const logEvent = useStore((s) => s.logEvent);
   const medications = useStore((s) => s.medications);
   const reconcileDoses = useStore((s) => s.reconcileDoses);
+  const { t, lang } = useT();
 
   const [now, setNow] = useState(new Date());
   const ambient = useAmbientMonitor();
@@ -34,10 +36,13 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
     return () => clearInterval(t);
   }, [reconcileDoses]);
 
-  // Keep on-device dose reminders in sync with the current med list.
+  // Keep on-device dose reminders in sync with the current med list, in the
+  // loved one's language.
   useEffect(() => {
-    if (medications.length) scheduleDoseReminders(medications);
-  }, [medications]);
+    if (medications.length) {
+      scheduleDoseReminders(medications, { title: t.notif.doseTitle, body: t.notif.doseBody });
+    }
+  }, [medications, t]);
 
   // Run ambient monitoring only while this screen is in front (avoids fighting
   // the camera/voice screens for the audio session), and only if consented.
@@ -59,7 +64,7 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
   const firstName = lovedOne?.name?.split(' ')[0] ?? 'there';
 
   const acknowledgeCheckIn = () => {
-    say('Thank you. I love you too.');
+    say(t.spoken.thankYou);
     logEvent({
       kind: 'activity',
       severity: 'info',
@@ -78,11 +83,9 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
 
         {/* Clock + greeting: the calm idle state */}
         <View style={styles.clockBlock}>
-          <Text style={styles.greeting}>
-            {greeting(now)}, {firstName}
-          </Text>
-          <Text style={styles.clock}>{clockTime(now)}</Text>
-          <Text style={styles.date}>{longDate(now)}</Text>
+          <Text style={styles.greeting}>{t.home.greeting(firstName, partOfDay(now))}</Text>
+          <Text style={styles.clock}>{clockTime(now, defaultTtsFor(lang))}</Text>
+          <Text style={styles.date}>{longDate(now, defaultTtsFor(lang))}</Text>
         </View>
 
         {/* Caregiver hello */}
@@ -91,7 +94,7 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
             <Text style={styles.helloText}>{checkIn}</Text>
             <View style={styles.helloBtn}>
               <Icon name="heart" size={20} color={colors.onUrgent} fill={colors.onUrgent} />
-              <Text style={styles.helloBtnText}>Thank you</Text>
+              <Text style={styles.helloBtnText}>{t.home.thankYou}</Text>
             </View>
           </Pressable>
         ) : null}
@@ -103,16 +106,16 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
         <View style={styles.actions}>
           <BigButton
             icon="camera"
-            label="Scan my medicine"
-            sublabel="Point the camera at the bottle"
+            label={t.home.scanLabel}
+            sublabel={t.home.scanSub}
             variant="accent"
             size="xl"
             onPress={() => navigation.navigate('Scan')}
           />
           <BigButton
             icon="mic"
-            label="Talk to me"
-            sublabel="Ask for your pills, or to call family"
+            label={t.home.talkLabel}
+            sublabel={t.home.talkSub}
             variant="neutral"
             size="xl"
             onPress={() => navigation.navigate('Voice')}
@@ -120,8 +123,8 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
           />
           <BigButton
             icon="shield-plus"
-            label="Emergency Card"
-            sublabel="Your medicines & contacts for helpers"
+            label={t.home.emergencyLabel}
+            sublabel={t.home.emergencySub}
             variant="neutral"
             onPress={() => navigation.navigate('EmergencyCard')}
             style={{ marginTop: space.md }}
@@ -133,13 +136,13 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
           <ListeningStrip level={ambient.level} simulated={ambient.simulated} name={firstName} />
         ) : (
           <Pressable style={styles.offStrip} onPress={() => navigation.navigate('SeniorSettings')}>
-            <Text style={styles.offStripText}>Safety listening is off — tap to turn it on</Text>
+            <Text style={styles.offStripText}>{t.home.listeningOff}</Text>
           </Pressable>
         )}
 
         {!lovedOne?.paired ? (
           <Pressable style={styles.pairHint} onPress={() => navigation.navigate('Pairing')}>
-            <Text style={styles.pairHintText}>Not connected to family yet — tap to connect</Text>
+            <Text style={styles.pairHintText}>{t.home.notConnected}</Text>
           </Pressable>
         ) : null}
       </ScrollView>
@@ -149,11 +152,12 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
 
 function ListeningStrip({ level, simulated, name }: { level: number; simulated: boolean; name: string }) {
   const bars = 5;
+  const { t } = useT();
   return (
     <View style={styles.listen}>
       <View style={styles.dotRow}>
         <View style={styles.orangeDot} />
-        <Text style={styles.listenText}>I'm listening, keeping {name} safe</Text>
+        <Text style={styles.listenText}>{t.home.listening(name)}</Text>
       </View>
       <View style={styles.meter}>
         {Array.from({ length: bars }).map((_, i) => {
@@ -161,7 +165,7 @@ function ListeningStrip({ level, simulated, name }: { level: number; simulated: 
           return <View key={i} style={[styles.meterBar, active && styles.meterBarOn]} />;
         })}
       </View>
-      {simulated ? <Text style={styles.simNote}>demo level</Text> : null}
+      {simulated ? <Text style={styles.simNote}>{t.home.demoLevel}</Text> : null}
     </View>
   );
 }

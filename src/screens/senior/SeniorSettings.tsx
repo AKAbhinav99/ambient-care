@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
+import { useT } from '../../i18n';
 import { Card } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Icon, type IconName } from '../../components/ui/Icon';
@@ -12,26 +13,27 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
   const lovedOne = useStore((s) => s.lovedOne);
   const updateLovedOne = useStore((s) => s.updateLovedOne);
   const signOut = useStore((s) => s.signOut);
+  const { t } = useT();
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={styles.title}>{t.settings.title}</Text>
 
         {lovedOne ? (
           <>
             <ToggleCard
               icon="settings"
-              title="Always-on mode"
-              desc="Keep this app in front so it can watch out for you. You can always leave it to use other apps — nothing is locked."
+              title={t.settings.alwaysOnTitle}
+              desc={t.settings.alwaysOnDesc}
               value={lovedOne.alwaysOnMode}
               onToggle={(v) => updateLovedOne({ alwaysOnMode: v })}
             />
 
             <ToggleCard
               icon="volume"
-              title="Listen for my safety"
-              desc="This device listens for falls, distress, and unusual quiet. Sounds are checked right here on the device — nothing is recorded or sent anywhere."
+              title={t.settings.listenTitle}
+              desc={t.settings.listenDesc}
               value={lovedOne.ambientOptIn}
               onToggle={(v) => updateLovedOne({ ambientOptIn: v })}
               highlight
@@ -41,36 +43,41 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
             <Card raised={false} style={styles.dotCard}>
               <View style={styles.dotRow}>
                 <View style={styles.orangeDot} />
-                <Text style={styles.dotTitle}>About the orange dot</Text>
+                <Text style={styles.dotTitle}>{t.settings.orangeDotTitle}</Text>
               </View>
-              <Text style={styles.dotText}>
-                When you see a small orange dot at the top of the screen, it just means the device is
-                listening for your safety. That's a good thing — it's watching out for you.
-              </Text>
+              <Text style={styles.dotText}>{t.settings.orangeDotText}</Text>
             </Card>
           </>
         ) : (
-          <Text style={styles.note}>Ask your family to finish setting up your profile.</Text>
+          <Text style={styles.note}>{t.settings.askFamilySetup}</Text>
         )}
 
         <BigButton
+          icon="volume"
+          label={t.settings.languageVoice}
+          variant="neutral"
+          onPress={() => navigation.navigate('Language')}
+          style={{ marginTop: space.lg }}
+        />
+
+        <BigButton
           icon="link"
-          label="Connect to family"
+          label={t.settings.connectFamily}
           variant="neutral"
           onPress={() => navigation.navigate('Pairing')}
-          style={{ marginTop: space.lg }}
+          style={{ marginTop: space.md }}
         />
 
         <Pressable
           onPress={() =>
-            Alert.alert('Switch device role?', 'This returns to the first screen.', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Switch', onPress: signOut },
+            Alert.alert(t.settings.switchRoleTitle, t.settings.switchRoleBody, [
+              { text: t.common.cancel, style: 'cancel' },
+              { text: t.settings.switchBtn, onPress: signOut },
             ])
           }
           style={styles.switchRole}
         >
-          <Text style={styles.switchText}>Switch role / start over</Text>
+          <Text style={styles.switchText}>{t.settings.switchRoleLink}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
+import { LANGUAGES, DEFAULT_LANG } from '../../i18n';
 import { Card, SectionLabel } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Field } from '../../components/ui/Field';
@@ -103,6 +104,30 @@ export function LovedOneSetup({ navigation }: CaregiverProps<'LovedOne'>) {
               ? 'The senior can still leave the app anytime — nothing is locked.'
               : 'Normal mode: the device is used freely. Background listening is limited by iOS — full-strength monitoring happens while the app is open.'}
           </Text>
+        </Card>
+
+        {/* Language for the home device */}
+        <SectionLabel>Language & voice</SectionLabel>
+        <Card style={{ marginBottom: space.lg }}>
+          <Text style={styles.modeNote}>
+            The home device shows and speaks in this language. {lovedOne.name} can also change it —
+            and pick a voice (accent, male or female) — in the device's settings.
+          </Text>
+          <View style={styles.langWrap}>
+            {LANGUAGES.map((l) => {
+              const active = (lovedOne.language ?? DEFAULT_LANG) === l.code;
+              return (
+                <Pressable
+                  key={l.code}
+                  onPress={() => updateLovedOne({ language: l.code })}
+                  style={[styles.langChip, active && styles.langChipOn]}
+                >
+                  <Text style={[styles.langChipNative, active && styles.langChipTextOn]}>{l.nativeLabel}</Text>
+                  <Text style={[styles.langChipEng, active && styles.langChipTextOn]}>{l.englishLabel}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </Card>
 
         {/* Ambient consent */}
@@ -308,6 +333,23 @@ const styles = StyleSheet.create({
   toggleDesc: { fontSize: type.caption, color: colors.inkSoft, marginTop: 4, lineHeight: type.caption * 1.5 },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: space.sm },
   modeNote: { fontSize: type.caption, color: colors.inkFaint, lineHeight: type.caption * 1.5 },
+
+  langWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md },
+  langChip: {
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
+    minWidth: 100,
+  },
+  langChipOn: { borderColor: colors.accent, backgroundColor: colors.accent },
+  // System font (no custom family) so non-Latin native labels render on the
+  // English caregiver surface.
+  langChipNative: { fontFamily: undefined, fontWeight: '700', fontSize: type.body, color: colors.ink },
+  langChipEng: { fontFamily: undefined, fontSize: type.caption, color: colors.inkSoft, marginTop: 2 },
+  langChipTextOn: { color: colors.onAccent },
 
   consent: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
   consentNote: {

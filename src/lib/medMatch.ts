@@ -20,12 +20,3 @@ export function matchByBarcode(meds: Medication[], barcode: string): MatchResult
   const med = meds.find((m) => m.barcode && m.barcode === barcode.trim());
   return med ? { matched: true, med } : { matched: false };
 }
-
-/** Warm confirmation spoken + shown when a scan matches. */
-export function confirmationText(med: Medication): string {
-  return `This is ${med.friendlyName}. Take ${med.dosage.toLowerCase()} now.`;
-}
-
-export function mismatchText(caregiverName: string): string {
-  return `This doesn't match anything on your list. Want me to let ${caregiverName} know?`;
-}

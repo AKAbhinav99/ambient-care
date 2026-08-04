@@ -17,6 +17,8 @@ export type SeniorStackParams = {
   Voice: undefined;
   SeniorSettings: undefined;
   EmergencyCard: undefined;
+  Language: undefined;
+  VoicePicker: undefined;
 };
 
 export type CaregiverProps<T extends keyof CaregiverStackParams> = NativeStackScreenProps<

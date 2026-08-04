@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
+import { useT } from '../../i18n';
 import { BigButton } from '../../components/ui/BigButton';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
@@ -10,32 +11,31 @@ import type { SeniorProps } from '../../navigation/types';
 export function PairingScreen({ navigation }: SeniorProps<'Pairing'>) {
   const lovedOne = useStore((s) => s.lovedOne);
   const updateLovedOne = useStore((s) => s.updateLovedOne);
+  const { t } = useT();
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.title}>Connect to your family</Text>
+        <Text style={styles.title}>{t.pairing.title}</Text>
 
         {lovedOne ? (
           <>
-            <Text style={styles.sub}>
-              In your family member's app, they can type this code to connect to this device.
-            </Text>
+            <Text style={styles.sub}>{t.pairing.sub}</Text>
             <View style={styles.codeBox}>
-              <Text style={styles.codeLabel}>Your code</Text>
+              <Text style={styles.codeLabel}>{t.pairing.yourCode}</Text>
               <Text style={styles.code}>{lovedOne.pairingCode}</Text>
             </View>
 
             {lovedOne.paired ? (
               <View style={styles.paired}>
                 <Icon name="check-circle" size={26} color={colors.calmInk} strokeWidth={2.2} />
-                <Text style={styles.pairedText}>You're connected to {lovedOne.relationship}</Text>
+                <Text style={styles.pairedText}>{t.pairing.connectedTo(lovedOne.relationship)}</Text>
               </View>
             ) : (
               <BigButton
                 icon="link"
-                label="Mark as connected"
-                sublabel="For this demo device"
+                label={t.pairing.markConnected}
+                sublabel={t.pairing.markConnectedSub}
                 variant="accent"
                 size="xl"
                 onPress={() => updateLovedOne({ paired: true })}
@@ -44,13 +44,10 @@ export function PairingScreen({ navigation }: SeniorProps<'Pairing'>) {
             )}
           </>
         ) : (
-          <Text style={styles.sub}>
-            Ask your family to open their app and add you first. Then a code will appear here to
-            connect.
-          </Text>
+          <Text style={styles.sub}>{t.pairing.askFamilyFirst}</Text>
         )}
 
-        <BigButton label="Done" variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: space.xl }} />
+        <BigButton label={t.common.done} variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: space.xl }} />
       </ScrollView>
     </SafeAreaView>
   );

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../../lib/store';
+import { useT, type Messages } from '../../i18n';
 import { say } from '../../lib/speech';
 import { fireAlert } from '../../lib/notifications';
-import { matchIntent, smalltalkReply, type IntentId } from '../../lib/intents';
+import { matchIntent, type IntentId } from '../../lib/intents';
 import { todaysDoses } from '../../lib/adherence';
 import { Icon, type IconName } from '../../components/ui/Icon';
 import { colors, space, type, radius, shadow, font } from '../../theme/tokens';
@@ -16,14 +17,14 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
   const medications = useStore((s) => s.medications);
   const doseLogs = useStore((s) => s.doseLogs);
   const logEvent = useStore((s) => s.logEvent);
+  const { t } = useT();
 
-  const [reply, setReply] = useState<string>(
-    "Tap what you'd like, or type below. I'm listening.",
-  );
+  const [reply, setReply] = useState<string>(t.talk.intro);
   const [typed, setTyped] = useState('');
 
-  const family = lovedOne?.relationship ?? 'your family';
-  const familyName = lovedOne ? `your ${lovedOne.relationship.toLowerCase()}` : 'your family';
+  // The relationship the caregiver entered (e.g. "Mother"), used both in the UI
+  // and spoken back. Event titles below stay English for the caregiver's log.
+  const family = lovedOne?.relationship ?? 'family';
 
   const respond = (text: string) => {
     setReply(text);
@@ -40,7 +41,7 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
           detail: 'Spoken distress phrase — reach out now.',
         });
         if (lovedOne) fireAlert(ev, firstName(lovedOne.name));
-        respond(`I've let ${familyName} know right away. Please sit down and stay where you are — help is coming.`);
+        respond(t.spoken.distress(family));
         break;
       }
       case 'callFamily': {
@@ -49,7 +50,7 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
           severity: 'checkIn',
           title: `${firstName(lovedOne?.name)} asked to call ${family}`,
         });
-        respond(`Okay, I'm calling ${familyName} for you now.`);
+        respond(t.spoken.calling(family));
         break;
       }
       case 'meds': {
@@ -58,7 +59,7 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
           severity: 'info',
           title: `${firstName(lovedOne?.name)} asked about their medicine`,
         });
-        respond(medsSentence(medications));
+        respond(medsSentence(medications, t));
         break;
       }
       case 'checkMeds': {
@@ -67,11 +68,11 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
           severity: 'info',
           title: `${firstName(lovedOne?.name)} asked if they'd taken their medicine`,
         });
-        respond(takenAnswer(medications, doseLogs, Date.now()));
+        respond(takenAnswer(medications, doseLogs, Date.now(), t));
         break;
       }
       default:
-        respond(smalltalkReply());
+        respond(smalltalk(t));
     }
   };
 
@@ -89,33 +90,33 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
           <Text style={styles.replyText}>{reply}</Text>
         </View>
 
-        <Text style={styles.prompt}>What would you like?</Text>
+        <Text style={styles.prompt}>{t.talk.prompt}</Text>
 
         <IntentCard
           icon="alert-circle"
-          title="I don't feel good"
-          desc={`Tells ${familyName} right away`}
+          title={t.talk.distressTitle}
+          desc={t.talk.distressDesc(family)}
           tone="urgent"
           onPress={() => handleIntent('distress')}
         />
         <IntentCard
           icon="phone"
-          title={`Call ${family}`}
-          desc="Reach your family now"
+          title={t.talk.callTitle(family)}
+          desc={t.talk.callDesc}
           tone="accent"
           onPress={() => handleIntent('callFamily')}
         />
         <IntentCard
           icon="pill"
-          title="What pills do I take?"
-          desc="I'll read your list out loud"
+          title={t.talk.medsTitle}
+          desc={t.talk.medsDesc}
           tone="neutral"
           onPress={() => handleIntent('meds')}
         />
         <IntentCard
           icon="check-circle"
-          title="Did I take my pills?"
-          desc="I'll check what you've taken today"
+          title={t.talk.checkTitle}
+          desc={t.talk.checkDesc}
           tone="neutral"
           onPress={() => handleIntent('checkMeds')}
         />
@@ -126,19 +127,16 @@ export function VoiceScreen(_: SeniorProps<'Voice'>) {
             style={styles.input}
             value={typed}
             onChangeText={setTyped}
-            placeholder="Or type what you'd say…"
+            placeholder={t.talk.placeholder}
             placeholderTextColor={colors.inkFaint}
             onSubmitEditing={onType}
             returnKeyType="send"
           />
           <Pressable style={styles.send} onPress={onType}>
-            <Text style={styles.sendText}>Say</Text>
+            <Text style={styles.sendText}>{t.talk.say}</Text>
           </Pressable>
         </View>
-        <Text style={styles.note}>
-          In Expo Go this stands in for always-listening speech-to-text, which needs a custom dev
-          build. The intent matching is the real thing.
-        </Text>
+        <Text style={styles.note}>{t.talk.note}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,53 +182,40 @@ function firstName(name?: string | null) {
   return name?.split(' ')[0] ?? 'Your loved one';
 }
 
-function medsSentence(meds: { name: string; schedule: string; dosage: string }[]): string {
-  if (meds.length === 0) return "I don't have any medicines on your list yet. Ask your family to add them.";
-  const parts = meds.map((m) => `${m.name}, ${m.dosage.toLowerCase()}, in the ${scheduleWord(m.schedule)}`);
-  return `Here's your medicine. ${parts.join('. ')}.`;
+/** Pick a small-talk line at random from the active language. */
+function smalltalk(t: Messages): string {
+  const lines = t.spoken.smalltalk;
+  return lines[Math.floor(Math.random() * lines.length)];
 }
 
-/** Join a set of doses by their friendly names, e.g. "your aspirin and your sugar medicine". */
-function listFriendly(doses: { med: Medication }[]): string {
+function medsSentence(meds: Medication[], t: Messages): string {
+  if (meds.length === 0) return t.spoken.noMeds;
+  const parts = meds.map((m) => t.spoken.medItem(m.name, m.dosage.toLowerCase(), t.spoken.schedule[m.schedule]));
+  return t.spoken.medsIntro(parts.join('. '));
+}
+
+/** Join a set of doses by their friendly names, in the active language's grammar. */
+function listFriendly(doses: { med: Medication }[], t: Messages): string {
   const names = Array.from(new Set(doses.map((d) => d.med.friendlyName)));
-  if (names.length === 1) return names[0];
-  if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+  return t.spoken.joinList(names);
 }
 
-/** Answer "did I take my meds?" from today's dose log. */
-function takenAnswer(meds: Medication[], doseLogs: DoseLog[], now: number): string {
+/** Answer "did I take my meds?" from today's dose log, in the active language. */
+function takenAnswer(meds: Medication[], doseLogs: DoseLog[], now: number, t: Messages): string {
   const today = todaysDoses(meds, doseLogs, now);
-  if (!today.length) return "You don't have any scheduled medicines today.";
+  if (!today.length) return t.spoken.noneScheduledToday;
   const taken = today.filter((d) => d.status === 'taken');
   const pending = today.filter((d) => d.status === 'due' || d.status === 'upcoming');
   const missed = today.filter((d) => d.status === 'missed');
 
-  const parts: string[] = [];
   if (!pending.length && !missed.length && taken.length) {
-    return `Yes — you're all caught up. You've taken ${listFriendly(taken)} today. Nicely done.`;
+    return t.spoken.allCaughtUp(listFriendly(taken, t));
   }
-  parts.push(taken.length ? `You've already taken ${listFriendly(taken)}.` : "You haven't taken any medicine yet today.");
-  if (pending.length) parts.push(`Still coming up: ${listFriendly(pending)}.`);
-  if (missed.length) {
-    parts.push(`It looks like you may have missed ${listFriendly(missed)}. That's okay — I've let your family know.`);
-  }
+  const parts: string[] = [];
+  parts.push(taken.length ? t.spoken.alreadyTaken(listFriendly(taken, t)) : t.spoken.notTakenYet);
+  if (pending.length) parts.push(t.spoken.stillComing(listFriendly(pending, t)));
+  if (missed.length) parts.push(t.spoken.mayHaveMissed(listFriendly(missed, t)));
   return parts.join(' ');
-}
-
-function scheduleWord(s: string) {
-  switch (s) {
-    case 'morning':
-      return 'morning';
-    case 'midday':
-      return 'middle of the day';
-    case 'evening':
-      return 'evening';
-    case 'bedtime':
-      return 'evening at bedtime';
-    default:
-      return 'as needed';
-  }
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useStore } from '../lib/store';
+import { useT } from '../i18n';
 import { dueDoses } from '../lib/adherence';
 import { say } from '../lib/speech';
 import { colors, radius, space, type, font } from '../theme/tokens';
@@ -15,6 +16,7 @@ export function DosePrompt({ now }: { now: number }) {
   const doseLogs = useStore((s) => s.doseLogs);
   const markDoseTaken = useStore((s) => s.markDoseTaken);
   const markDoseSkipped = useStore((s) => s.markDoseSkipped);
+  const { t } = useT();
 
   const due = dueDoses(medications, doseLogs, now);
   if (!due.length) return null;
@@ -23,7 +25,7 @@ export function DosePrompt({ now }: { now: number }) {
     <View style={styles.card}>
       <View style={styles.titleRow}>
         <Icon name="pill" size={22} color={colors.accentInk} strokeWidth={2.2} />
-        <Text style={styles.title}>Time for your medicine</Text>
+        <Text style={styles.title}>{t.dose.title}</Text>
       </View>
       {due.map((slot) => (
         <View key={`${slot.med.id}-${slot.scheduledAt}`} style={styles.doseRow}>
@@ -35,21 +37,21 @@ export function DosePrompt({ now }: { now: number }) {
             <Pressable
               style={styles.takeBtn}
               accessibilityRole="button"
-              accessibilityLabel={`Mark ${slot.med.friendlyName} as taken`}
+              accessibilityLabel={t.dose.markAria(slot.med.friendlyName)}
               onPress={() => {
                 markDoseTaken(slot.med.id, slot.scheduledAt, 'manual');
-                say(`Good. I've marked ${slot.med.friendlyName} as taken.`);
+                say(t.spoken.markedTaken(slot.med.friendlyName));
               }}
             >
               <Icon name="check" size={20} color={colors.onAccent} strokeWidth={2.6} />
-              <Text style={styles.takeBtnText}>I took it</Text>
+              <Text style={styles.takeBtnText}>{t.dose.taken}</Text>
             </Pressable>
             <Pressable
               style={styles.skipBtn}
               onPress={() => markDoseSkipped(slot.med.id, slot.scheduledAt)}
               hitSlop={8}
             >
-              <Text style={styles.skipText}>Not now</Text>
+              <Text style={styles.skipText}>{t.dose.notNow}</Text>
             </Pressable>
           </View>
         </View>

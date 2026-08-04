@@ -63,14 +63,3 @@ export function matchIntent(phrase: string): IntentId {
   }
   return 'smalltalk';
 }
-
-/** A few gentle small-talk replies for anything unmatched. */
-const SMALLTALK = [
-  "I'm right here with you. Is there anything you need?",
-  "That's nice. I'm listening if you need anything.",
-  "I'm keeping an eye on things for you. You can always ask me for your pills, or to call your family.",
-];
-
-export function smalltalkReply(): string {
-  return SMALLTALK[Math.floor(Math.random() * SMALLTALK.length)];
-}

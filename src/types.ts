@@ -1,5 +1,7 @@
 /** Shared domain types for both surfaces. */
 
+import type { LangCode } from './i18n/config';
+
 export type Role = 'caregiver' | 'senior';
 
 export interface EmergencyContact {
@@ -16,6 +18,12 @@ export interface LovedOne {
   paired: boolean;
   ambientOptIn: boolean; // explicit consent to ambient audio monitoring
   alwaysOnMode: boolean; // "Always-on" (kiosk-ish) vs "Normal mode"
+
+  // --- Language & voice (senior surface) ---
+  language?: LangCode; // localized senior UI + spoken output; defaults to English
+  voiceId?: string; // chosen expo-speech voice identifier (accent + gender)
+  voiceRegion?: string; // BCP-47 tag of the chosen voice, e.g. "es-MX"
+  speechRate?: number; // spoken rate override (defaults to 0.92)
 
   // --- Medical profile (powers the Emergency Med Card) ---
   dob?: string; // ISO date; age is derived

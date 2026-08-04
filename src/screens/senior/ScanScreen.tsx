@@ -3,10 +3,11 @@ import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useStore } from '../../lib/store';
+import { useT } from '../../i18n';
 import { say } from '../../lib/speech';
 import { fireAlert } from '../../lib/notifications';
 import { nearestSlot } from '../../lib/adherence';
-import { matchByBarcode, confirmationText, mismatchText } from '../../lib/medMatch';
+import { matchByBarcode } from '../../lib/medMatch';
 import { BigButton } from '../../components/ui/BigButton';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
@@ -21,18 +22,18 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
   const medications = useStore((s) => s.medications);
   const logEvent = useStore((s) => s.logEvent);
   const markDoseTaken = useStore((s) => s.markDoseTaken);
+  const { t } = useT();
 
   const [result, setResult] = useState<Result>(null);
   const [manual, setManual] = useState(false);
   const lockRef = useRef(false);
 
-  const familyName = lovedOne ? `your ${lovedOne.relationship.toLowerCase()}` : 'your family';
+  const family = lovedOne?.relationship ?? 'family';
   const first = lovedOne?.name?.split(' ')[0] ?? 'Your loved one';
 
   const finishMatch = (med: Medication) => {
     setResult({ matched: true, med });
-    const text = confirmationText(med);
-    say(text);
+    say(t.spoken.scanConfirm(med.friendlyName, med.dosage.toLowerCase()));
     logEvent({
       kind: 'scan_match',
       severity: 'info',
@@ -46,7 +47,7 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
 
   const finishMismatch = (code: string) => {
     setResult({ matched: false, code });
-    say(mismatchText(familyName));
+    say(t.spoken.scanMismatch(family));
     logEvent({
       kind: 'scan_mismatch',
       severity: 'checkIn',
@@ -77,7 +78,7 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
       detail: 'Requested help identifying a medication.',
     });
     if (lovedOne) fireAlert(ev, first);
-    say(`Okay, I've let ${familyName} know.`);
+    say(t.spoken.scanAlerted(family));
     setResult(null);
     lockRef.current = false;
   };
@@ -93,7 +94,7 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
                 <Icon name="check" size={44} color="#fff" strokeWidth={2.6} />
               </View>
               <Text style={styles.resultTitle}>{result.med.friendlyName}</Text>
-              <Text style={styles.resultBig}>Take {result.med.dosage.toLowerCase()} now</Text>
+              <Text style={styles.resultBig}>{t.scan.takeNow(result.med.dosage.toLowerCase())}</Text>
               <Text style={styles.resultName}>{result.med.name}</Text>
             </View>
           ) : (
@@ -101,19 +102,19 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
               <View style={[styles.resultIconCircle, { backgroundColor: colors.checkIn }]}>
                 <Icon name="help-circle" size={44} color="#fff" strokeWidth={2.2} />
               </View>
-              <Text style={styles.resultTitle}>Hmm, I don't recognize this</Text>
-              <Text style={styles.resultBig}>It's not on your list</Text>
+              <Text style={styles.resultTitle}>{t.scan.notRecognizedTitle}</Text>
+              <Text style={styles.resultBig}>{t.scan.notOnList}</Text>
               <BigButton
                 icon="phone"
-                label={`Tell ${lovedOne?.relationship ?? 'family'}`}
+                label={t.scan.tellFamily(family)}
                 variant="urgent"
                 onPress={alertFamily}
                 style={{ marginTop: space.lg, alignSelf: 'stretch' }}
               />
             </View>
           )}
-          <BigButton icon="rotate" label="Scan another" variant="neutral" onPress={reset} style={{ marginTop: space.lg }} />
-          <BigButton label="Done" variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: space.sm }} />
+          <BigButton icon="rotate" label={t.scan.scanAnother} variant="neutral" onPress={reset} style={{ marginTop: space.lg }} />
+          <BigButton label={t.common.done} variant="ghost" onPress={() => navigation.goBack()} style={{ marginTop: space.sm }} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -124,9 +125,9 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
     return (
       <SafeAreaView style={styles.safe} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.manualTitle}>Which one are you holding?</Text>
+          <Text style={styles.manualTitle}>{t.scan.whichHolding}</Text>
           {medications.length === 0 ? (
-            <Text style={styles.note}>No medications on file yet.</Text>
+            <Text style={styles.note}>{t.scan.noMedsOnFile}</Text>
           ) : (
             medications.map((m) => (
               <Pressable key={m.id} style={styles.pick} onPress={() => finishMatch(m)}>
@@ -140,7 +141,7 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
               </Pressable>
             ))
           )}
-          <BigButton label="Back to camera" variant="ghost" onPress={() => setManual(false)} style={{ marginTop: space.lg }} />
+          <BigButton label={t.scan.backToCamera} variant="ghost" onPress={() => setManual(false)} style={{ marginTop: space.lg }} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -148,7 +149,7 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
 
   // ---- Camera view ----
   if (!permission) {
-    return <Centered text="Preparing camera…" />;
+    return <Centered text={t.scan.preparingCamera} />;
   }
   if (!permission.granted) {
     return (
@@ -157,13 +158,10 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
           <View style={styles.permIconCircle}>
             <Icon name="camera" size={40} color={colors.accentInk} strokeWidth={2} />
           </View>
-          <Text style={styles.permTitle}>Camera access needed</Text>
-          <Text style={styles.note}>
-            To read your medicine bottle, this device needs to use the camera — briefly and only when
-            you tap scan. No photos are saved.
-          </Text>
-          <BigButton label="Allow camera" variant="accent" onPress={requestPermission} style={{ marginTop: space.lg }} />
-          <BigButton label="Pick from my list instead" variant="ghost" onPress={() => setManual(true)} style={{ marginTop: space.sm }} />
+          <Text style={styles.permTitle}>{t.scan.cameraNeededTitle}</Text>
+          <Text style={styles.note}>{t.scan.cameraNeededBody}</Text>
+          <BigButton label={t.scan.allowCamera} variant="accent" onPress={requestPermission} style={{ marginTop: space.lg }} />
+          <BigButton label={t.scan.pickFromList} variant="ghost" onPress={() => setManual(true)} style={{ marginTop: space.sm }} />
         </View>
       </SafeAreaView>
     );
@@ -180,14 +178,14 @@ export function ScanScreen({ navigation }: SeniorProps<'Scan'>) {
         onBarcodeScanned={onBarcode}
       />
       <SafeAreaView style={styles.overlay} edges={['top', 'bottom']}>
-        <Text style={styles.instruct}>Point at the barcode on the bottle</Text>
+        <Text style={styles.instruct}>{t.scan.pointAtBarcode}</Text>
         <View style={styles.reticle} />
         <View style={styles.overlayButtons}>
           <Pressable style={styles.overlayBtn} onPress={() => setManual(true)}>
-            <Text style={styles.overlayBtnText}>Can't scan? Pick from list</Text>
+            <Text style={styles.overlayBtnText}>{t.scan.cantScan}</Text>
           </Pressable>
           <Pressable style={styles.overlayBtnGhost} onPress={() => navigation.goBack()}>
-            <Text style={styles.overlayBtnGhostText}>Cancel</Text>
+            <Text style={styles.overlayBtnGhostText}>{t.common.cancel}</Text>
           </Pressable>
         </View>
       </SafeAreaView>

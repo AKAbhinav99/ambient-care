@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Share } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useStore } from '../../lib/store';
+import { useT } from '../../i18n';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
 import type { LovedOne, Medication } from '../../types';
@@ -40,12 +41,13 @@ export function EmergencyCardScreen() {
   const navigation = useNavigation();
   const lovedOne = useStore((s) => s.lovedOne);
   const medications = useStore((s) => s.medications);
+  const { t } = useT();
 
   if (!lovedOne) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.empty}>
-          <Text style={styles.emptyText}>No profile yet. A caregiver can set this up first.</Text>
+          <Text style={styles.emptyText}>{t.emergency.noProfile}</Text>
         </View>
       </SafeAreaView>
     );
@@ -61,22 +63,22 @@ export function EmergencyCardScreen() {
         <View style={styles.header}>
           <View style={styles.badgeRow}>
             <Icon name="shield-plus" size={18} color={colors.urgent} strokeWidth={2.4} />
-            <Text style={styles.badge}>EMERGENCY MEDICAL CARD</Text>
+            <Text style={styles.badge}>{t.emergency.badge}</Text>
           </View>
           <Text style={styles.name}>
             {lovedOne.name}
-            {age != null ? <Text style={styles.age}>  ·  age {age}</Text> : null}
+            {age != null ? <Text style={styles.age}>{`  ·  ${t.emergency.age(age)}`}</Text> : null}
           </Text>
           {lovedOne.bloodType ? (
             <View style={styles.bloodChip}>
-              <Text style={styles.bloodText}>Blood type {lovedOne.bloodType}</Text>
+              <Text style={styles.bloodText}>{t.emergency.bloodType(lovedOne.bloodType)}</Text>
             </View>
           ) : null}
         </View>
 
         {/* Allergies — the single most important field for a first responder */}
         <View style={[styles.section, styles.allergyBox]}>
-          <Text style={styles.allergyLabel}>ALLERGIES</Text>
+          <Text style={styles.allergyLabel}>{t.emergency.allergies.toUpperCase()}</Text>
           {lovedOne.allergies?.length ? (
             lovedOne.allergies.map((a) => (
               <View key={a} style={styles.allergyRow}>
@@ -85,12 +87,12 @@ export function EmergencyCardScreen() {
               </View>
             ))
           ) : (
-            <Text style={styles.none}>None recorded</Text>
+            <Text style={styles.none}>{t.emergency.noneRecorded}</Text>
           )}
         </View>
 
         {lovedOne.conditions?.length ? (
-          <Block title="Conditions">
+          <Block title={t.emergency.conditions}>
             {lovedOne.conditions.map((c) => (
               <Text key={c} style={styles.item}>
                 • {c}
@@ -99,21 +101,21 @@ export function EmergencyCardScreen() {
           </Block>
         ) : null}
 
-        <Block title="Current medications">
+        <Block title={t.emergency.currentMeds}>
           {medications.length ? (
             medications.map((m) => (
               <Text key={m.id} style={styles.item}>
                 • {m.name} — {m.dosage}
-                {m.critical ? <Text style={styles.critical}>  critical</Text> : null}
+                {m.critical ? <Text style={styles.critical}>{`  ${t.emergency.critical}`}</Text> : null}
               </Text>
             ))
           ) : (
-            <Text style={styles.none}>None recorded</Text>
+            <Text style={styles.none}>{t.emergency.noneRecorded}</Text>
           )}
         </Block>
 
         {lovedOne.emergencyContacts?.length ? (
-          <Block title="Emergency contacts">
+          <Block title={t.emergency.emergencyContacts}>
             {lovedOne.emergencyContacts.map((c) => (
               <Pressable key={c.phone} style={styles.contact} onPress={() => call(c.phone)}>
                 <View style={{ flex: 1 }}>
@@ -122,7 +124,7 @@ export function EmergencyCardScreen() {
                 </View>
                 <View style={styles.callBtn}>
                   <Icon name="phone" size={18} color="#fff" strokeWidth={2.2} />
-                  <Text style={styles.callBtnText}>Call</Text>
+                  <Text style={styles.callBtnText}>{t.emergency.call}</Text>
                 </View>
               </Pressable>
             ))}
@@ -130,7 +132,7 @@ export function EmergencyCardScreen() {
         ) : null}
 
         {lovedOne.doctor || lovedOne.pharmacy ? (
-          <Block title="Care team">
+          <Block title={t.emergency.careTeam}>
             {lovedOne.doctor ? (
               <View style={styles.teamRow}>
                 <Icon name="stethoscope" size={20} color={colors.accentInk} strokeWidth={2} />
@@ -147,16 +149,16 @@ export function EmergencyCardScreen() {
         ) : null}
 
         {lovedOne.medicalNotes ? (
-          <Block title="Notes">
+          <Block title={t.emergency.notes}>
             <Text style={styles.item}>{lovedOne.medicalNotes}</Text>
           </Block>
         ) : null}
 
         <Pressable style={styles.shareBtn} onPress={onShare}>
-          <Text style={styles.shareText}>Share this card</Text>
+          <Text style={styles.shareText}>{t.emergency.shareCard}</Text>
         </Pressable>
         <Pressable style={styles.closeBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.closeText}>Close</Text>
+          <Text style={styles.closeText}>{t.common.close}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

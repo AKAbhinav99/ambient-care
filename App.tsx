@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/source-sans-3';
 import './src/theme/applyFonts';
 import { useStore } from './src/lib/store';
+import { I18nProvider } from './src/i18n';
 import { colors } from './src/theme/tokens';
 import { RoleSelectScreen } from './src/screens/RoleSelectScreen';
 import { CaregiverNavigator } from './src/navigation/CaregiverNavigator';
@@ -74,8 +75,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <NavigationContainer theme={navTheme}>{surface}</NavigationContainer>
+      <I18nProvider>
+        <StatusBar style="dark" />
+        <NavigationContainer theme={navTheme}>{surface}</NavigationContainer>
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }

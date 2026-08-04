@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useStore } from '../lib/store';
+import { useT } from '../i18n';
 import { BigButton } from '../components/ui/BigButton';
 import { Icon } from '../components/ui/Icon';
 import { colors, space, type, radius, font } from '../theme/tokens';
@@ -13,6 +14,7 @@ import { colors, space, type, radius, font } from '../theme/tokens';
  */
 export function RoleSelectScreen() {
   const set = useStore((s) => s.setRole);
+  const { t } = useT();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -21,36 +23,31 @@ export function RoleSelectScreen() {
           <View style={styles.logo}>
             <Icon name="activity" size={20} color={colors.onAccent} strokeWidth={2.4} />
           </View>
-          <Text style={styles.brand}>Ambient Care</Text>
+          <Text style={styles.brand}>{t.role.brand}</Text>
         </View>
 
-        <Text style={styles.headline}>Quiet company{'\n'}that speaks up{'\n'}only when it matters.</Text>
-        <Text style={styles.sub}>
-          A calm helper on a spare phone or tablet, and a small window in your pocket for the family who
-          love them.
-        </Text>
+        <Text style={styles.headline}>{t.role.headline}</Text>
+        <Text style={styles.sub}>{t.role.sub}</Text>
 
-        <Text style={styles.pick}>Which one is this?</Text>
+        <Text style={styles.pick}>{t.role.whichIsThis}</Text>
 
         <BigButton
           icon="shield-plus"
-          label="This is the home device"
-          sublabel="Set it on the counter for Mom or Dad"
+          label={t.role.homeDevice}
+          sublabel={t.role.homeDeviceSub}
           variant="accent"
           onPress={() => set('senior')}
           style={{ marginBottom: space.md }}
         />
         <BigButton
           icon="phone"
-          label="I'm the caregiver"
-          sublabel="Check in on my loved one from my own phone"
+          label={t.role.caregiver}
+          sublabel={t.role.caregiverSub}
           variant="neutral"
           onPress={() => set('caregiver')}
         />
 
-        <Text style={styles.foot}>
-          You can switch roles anytime from the menu. Nothing is shared without pairing.
-        </Text>
+        <Text style={styles.foot}>{t.role.foot}</Text>
       </ScrollView>
     </SafeAreaView>
   );
