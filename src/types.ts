@@ -5,6 +5,16 @@ import type { ColorScheme } from './theme/tokens';
 
 export type Role = 'caregiver' | 'senior';
 
+/** The signed-in caregiver. `local` marks the no-Supabase demo bypass. */
+export interface Account {
+  id: string;
+  name: string;
+  email: string;
+  local?: boolean;
+}
+
+export type AuthStatus = 'unknown' | 'signedOut' | 'signedIn';
+
 export interface EmergencyContact {
   name: string;
   relationship: string;
@@ -15,7 +25,8 @@ export interface LovedOne {
   id: string;
   name: string;
   relationship: string; // e.g. "Mother"
-  pairingCode: string; // 6-char code the senior device shows / caregiver enters
+  caregiverId?: string; // owning caregiver account (Supabase user id) when signed in
+  pairingCode: string; // 6-char code the home device enters to bind to this recipient
   paired: boolean;
   ambientOptIn: boolean; // explicit consent to ambient audio monitoring
   alwaysOnMode: boolean; // "Always-on" (kiosk-ish) vs "Normal mode"
@@ -97,8 +108,34 @@ export interface CareEvent {
   acknowledgedAt?: number; // set when a caregiver acknowledges (stops escalation)
 }
 
+/** One care recipient's data slice, held keyed by recipient id in the store. */
+export interface RecipientData {
+  medications: Medication[];
+  doseLogs: DoseLog[];
+  events: CareEvent[];
+  lastActivityAt: number | null;
+  checkIn: string | null;
+}
+
 export interface CareState {
   role: Role | null;
+
+  // --- Auth (caregiver) ---
+  account: Account | null;
+  authStatus: AuthStatus;
+
+  // --- Multi-recipient roster + the active recipient's live slice ---
+  // The "active mirror": lovedOne/medications/doseLogs/events/lastActivityAt/checkIn
+  // below are always the ACTIVE recipient's data, so the existing screens are
+  // unchanged. `recipients` holds every other recipient's slice, keyed by id.
+  roster: LovedOne[];
+  activeLovedOneId: string | null;
+  recipients: Record<string, RecipientData>;
+  // The home (senior) device's bound recipient, set by entering a join code.
+  // Distinct from activeLovedOneId (the caregiver's current selection) because a
+  // single Expo Go device shares one store across both roles.
+  seniorBoundId: string | null;
+
   lovedOne: LovedOne | null;
   medications: Medication[];
   events: CareEvent[]; // newest first

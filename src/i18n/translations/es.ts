@@ -125,6 +125,16 @@ export const es: Messages = {
     switchRoleLink: 'Cambiar de rol / empezar de nuevo',
   },
 
+  codeEntry: {
+    title: 'Escribe tu código',
+    sub: 'Tu familia creó un código para este dispositivo. Escríbelo para empezar.',
+    placeholder: 'ABC123',
+    connect: 'Conectar',
+    connecting: 'Conectando…',
+    invalid: 'Ese código no coincidió. Revísalo e inténtalo de nuevo.',
+    back: 'Volver',
+  },
+
   pairing: {
     title: 'Conecta con tu familia',
     sub: 'En la app de tu familiar, pueden escribir este código para conectarse a este dispositivo.',

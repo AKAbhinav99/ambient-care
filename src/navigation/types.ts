@@ -1,6 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+export type AuthStackParams = {
+  Login: undefined;
+  SignUp: undefined;
+};
+
 export type CaregiverStackParams = {
+  Recipients: undefined;
+  AddRecipient: undefined;
   CaregiverHome: undefined;
   LovedOne: undefined;
   Medications: undefined;
@@ -20,6 +27,8 @@ export type SeniorStackParams = {
   Language: undefined;
   VoicePicker: undefined;
 };
+
+export type AuthProps<T extends keyof AuthStackParams> = NativeStackScreenProps<AuthStackParams, T>;
 
 export type CaregiverProps<T extends keyof CaregiverStackParams> = NativeStackScreenProps<
   CaregiverStackParams,

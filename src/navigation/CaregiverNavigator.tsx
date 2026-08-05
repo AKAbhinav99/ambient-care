@@ -3,6 +3,8 @@ import { Pressable, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useStore } from '../lib/store';
 import { colors, type, font } from '../theme/tokens';
+import { RecipientsScreen } from '../screens/caregiver/RecipientsScreen';
+import { AddRecipientScreen } from '../screens/caregiver/AddRecipientScreen';
 import { CaregiverDashboard } from '../screens/caregiver/CaregiverDashboard';
 import { LovedOneSetup } from '../screens/caregiver/LovedOneSetup';
 import { MedicationSetup } from '../screens/caregiver/MedicationSetup';
@@ -34,6 +36,8 @@ export function CaregiverNavigator() {
         contentStyle: { backgroundColor: colors.paper },
       }}
     >
+      <Stack.Screen name="Recipients" component={RecipientsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AddRecipient" component={AddRecipientScreen} options={{ title: 'Add recipient' }} />
       <Stack.Screen
         name="CaregiverHome"
         component={CaregiverDashboard}

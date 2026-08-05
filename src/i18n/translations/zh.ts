@@ -124,6 +124,16 @@ export const zh: Messages = {
     switchRoleLink: '切换角色／重新开始',
   },
 
+  codeEntry: {
+    title: '输入你的代码',
+    sub: '你的家人为这台设备设置了一个代码。输入它即可开始。',
+    placeholder: 'ABC123',
+    connect: '连接',
+    connecting: '连接中…',
+    invalid: '代码不匹配。请检查后重试。',
+    back: '返回',
+  },
+
   pairing: {
     title: '连接你的家人',
     sub: '在家人的应用里，他们可以输入这个代码来连接这台设备。',

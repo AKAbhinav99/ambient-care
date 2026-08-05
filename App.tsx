@@ -21,6 +21,10 @@ import { colors } from './src/theme/tokens';
 import { RoleSelectScreen } from './src/screens/RoleSelectScreen';
 import { CaregiverNavigator } from './src/navigation/CaregiverNavigator';
 import { SeniorNavigator } from './src/navigation/SeniorNavigator';
+import { AuthNavigator } from './src/navigation/AuthNavigator';
+import { CodeEntryScreen } from './src/screens/senior/CodeEntryScreen';
+import { currentAccount, subscribeAuth } from './src/lib/auth';
+import { isSupabaseConfigured } from './src/lib/supabase';
 
 const navTheme: Theme = {
   ...DefaultTheme,
@@ -48,6 +52,12 @@ function useHydrated(): boolean {
 export default function App() {
   const hydrated = useHydrated();
   const role = useStore((s) => s.role);
+  const account = useStore((s) => s.account);
+  const authStatus = useStore((s) => s.authStatus);
+  const seniorBoundId = useStore((s) => s.seniorBoundId);
+  const activeLovedOneId = useStore((s) => s.activeLovedOneId);
+  const setAccount = useStore((s) => s.setAccount);
+  const setActiveRecipient = useStore((s) => s.setActiveRecipient);
   const reconcileDoses = useStore((s) => s.reconcileDoses);
   const [fontsLoaded] = useFonts({
     Lexend_500Medium,
@@ -62,22 +72,46 @@ export default function App() {
 
   const ready = hydrated && fontsLoaded;
 
+  // Reconcile the caregiver session with Supabase (only when configured — otherwise
+  // the persisted local/demo account is left untouched).
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let unsub = () => {};
+    (async () => {
+      setAccount(await currentAccount());
+      unsub = subscribeAuth((a) => setAccount(a));
+    })();
+    return () => unsub();
+  }, [setAccount]);
+
+  // Keep the home device showing the recipient it was bound to by code.
+  useEffect(() => {
+    if (role === 'senior' && seniorBoundId && activeLovedOneId !== seniorBoundId) {
+      setActiveRecipient(seniorBoundId);
+    }
+  }, [role, seniorBoundId, activeLovedOneId, setActiveRecipient]);
+
   // Catch any doses that lapsed while the app was closed, once state is ready.
   useEffect(() => {
     if (ready) reconcileDoses();
   }, [ready, reconcileDoses]);
 
-  const surface = !ready ? (
-    <View style={styles.loading}>
-      <ActivityIndicator color={colors.accent} size="large" />
-    </View>
-  ) : role === 'senior' ? (
-    <SeniorNavigator />
-  ) : role === 'caregiver' ? (
-    <CaregiverNavigator />
-  ) : (
-    <RoleSelectScreen />
-  );
+  const checkingAuth = isSupabaseConfigured && authStatus === 'unknown';
+
+  let surface: React.ReactNode;
+  if (!ready || checkingAuth) {
+    surface = (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
+  } else if (role === 'caregiver') {
+    surface = account ? <CaregiverNavigator /> : <AuthNavigator />;
+  } else if (role === 'senior') {
+    surface = seniorBoundId ? <SeniorNavigator /> : <CodeEntryScreen />;
+  } else {
+    surface = <RoleSelectScreen />;
+  }
 
   return (
     <SafeAreaProvider>

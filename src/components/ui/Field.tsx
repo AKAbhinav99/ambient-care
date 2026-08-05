@@ -9,6 +9,7 @@ interface FieldProps {
   placeholder?: string;
   autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
   keyboardType?: KeyboardTypeOptions;
+  secure?: boolean; // password entry (masks input)
 }
 
 export function Field({
@@ -18,6 +19,7 @@ export function Field({
   placeholder,
   autoCapitalize = 'sentences',
   keyboardType,
+  secure,
 }: FieldProps) {
   return (
     <View style={styles.wrap}>
@@ -30,6 +32,7 @@ export function Field({
         placeholderTextColor={colors.inkFaint}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
+        secureTextEntry={secure}
       />
     </View>
   );

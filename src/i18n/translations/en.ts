@@ -130,6 +130,16 @@ export const en = {
     switchRoleLink: 'Switch role / start over',
   },
 
+  codeEntry: {
+    title: 'Enter your code',
+    sub: 'Your family set up a code for this device. Type it in to get started.',
+    placeholder: 'ABC123',
+    connect: 'Connect',
+    connecting: 'Connecting…',
+    invalid: "That code didn't match. Please check it and try again.",
+    back: 'Go back',
+  },
+
   pairing: {
     title: 'Connect to your family',
     sub: "In your family member's app, they can type this code to connect to this device.",

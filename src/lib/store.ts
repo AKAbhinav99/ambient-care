@@ -17,6 +17,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
+  Account,
   CareEvent,
   CareState,
   DoseLog,
@@ -24,9 +25,17 @@ import type {
   EventSeverity,
   LovedOne,
   Medication,
+  RecipientData,
   Role,
 } from '../types';
-import { maybeSyncEvent } from './supabase';
+import {
+  fetchRoster,
+  isSupabaseConfigured,
+  maybeSyncEvent,
+  redeemCode,
+  upsertRecipient,
+} from './supabase';
+import { signOut as authSignOut } from './auth';
 import { overdueUnmarked, todaysDoses, type DoseSlot } from './adherence';
 import { refillStatus } from './refill';
 import { fireAlert } from './notifications';
@@ -40,6 +49,23 @@ const WAKING_END = 22; // 10pm
 const uid = () => Math.random().toString(36).slice(2, 10);
 const code6 = () =>
   Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, 'X');
+
+const emptySlice = (): RecipientData => ({
+  medications: [],
+  doseLogs: [],
+  events: [],
+  lastActivityAt: null,
+  checkIn: null,
+});
+
+/** Snapshot the active recipient's live top-level fields into a slice. */
+const snapshotActive = (s: CareState): RecipientData => ({
+  medications: s.medications,
+  doseLogs: s.doseLogs,
+  events: s.events,
+  lastActivityAt: s.lastActivityAt,
+  checkIn: s.checkIn,
+});
 
 const firstNameOf = (lovedOne: LovedOne | null) => lovedOne?.name?.split(' ')[0] ?? 'Your loved one';
 
@@ -58,8 +84,16 @@ interface CareActions {
   setRole: (role: Role) => void;
   signOut: () => void;
 
+  // Auth (caregiver)
+  setAccount: (account: Account | null) => void;
+  signOutAccount: () => void;
+  hydrateRoster: () => Promise<void>;
+
+  // Multi-recipient roster
   createLovedOne: (name: string, relationship: string) => void;
   updateLovedOne: (patch: Partial<LovedOne>) => void;
+  setActiveRecipient: (id: string) => void;
+  bindByCode: (code: string) => Promise<boolean>;
   confirmPairing: (code: string) => boolean;
 
   addMedication: (m: Omit<Medication, 'id'>) => void;
@@ -89,6 +123,12 @@ export type Store = CareState & CareActions;
 
 const initial: CareState = {
   role: null,
+  account: null,
+  authStatus: 'unknown',
+  roster: [],
+  activeLovedOneId: null,
+  recipients: {},
+  seniorBoundId: null,
   lovedOne: null,
   medications: [],
   events: [],
@@ -104,32 +144,152 @@ export const useStore = create<Store>()(
       ...initial,
 
       setRole: (role) => set({ role }),
-      signOut: () => set({ role: null }),
+      // "Switch" from a surface — returns to the role picker but keeps the account.
+      // Also unbinds the home device so it re-prompts for a code on next entry.
+      signOut: () => set({ role: null, seniorBoundId: null }),
 
-      createLovedOne: (name, relationship) =>
+      setAccount: (account) => {
+        set({ account, authStatus: account ? 'signedIn' : 'signedOut' });
+        if (account && !account.local) get().hydrateRoster();
+      },
+
+      // Full caregiver logout: end the Supabase session and reset local state.
+      signOutAccount: () => {
+        authSignOut();
+        set({ ...initial, authStatus: 'signedOut' });
+      },
+
+      // Merge the caregiver's cloud recipient roster in (cloud-only; no-op offline).
+      hydrateRoster: async () => {
+        const s = get();
+        if (!s.account || s.account.local || !isSupabaseConfigured) return;
+        const cloud = await fetchRoster(s.account.id);
+        if (!cloud.length) return;
+        const cur = get();
+        const recipients = { ...cur.recipients };
+        const byId = new Map(cloud.map((r) => [r.id, r]));
+        // Update known entries with the cloud copy; append unknown ones.
+        const merged = cur.roster.map((r) => byId.get(r.id) ?? r);
+        for (const r of cloud) {
+          if (!merged.some((m) => m.id === r.id)) merged.push(r);
+          recipients[r.id] = recipients[r.id] ?? emptySlice();
+        }
+        set({ roster: merged, recipients });
+        if (!get().activeLovedOneId && merged.length) get().setActiveRecipient(merged[0].id);
+      },
+
+      createLovedOne: (name, relationship) => {
+        const s = get();
+        const lovedOne: LovedOne = {
+          id: uid(),
+          name: name.trim(),
+          relationship: relationship.trim(),
+          caregiverId: s.account?.id,
+          pairingCode: code6(),
+          paired: false,
+          ambientOptIn: false,
+          alwaysOnMode: true,
+        };
+        const recipients = { ...s.recipients };
+        if (s.activeLovedOneId) recipients[s.activeLovedOneId] = snapshotActive(s);
+        recipients[lovedOne.id] = emptySlice();
         set({
-          lovedOne: {
-            id: uid(),
-            name: name.trim(),
-            relationship: relationship.trim(),
-            pairingCode: code6(),
-            paired: false,
-            ambientOptIn: false,
-            alwaysOnMode: true,
-          },
-        }),
+          roster: [...s.roster, lovedOne],
+          recipients,
+          activeLovedOneId: lovedOne.id,
+          lovedOne,
+          medications: [],
+          doseLogs: [],
+          events: [],
+          lastActivityAt: null,
+          checkIn: null,
+        });
+        upsertRecipient(lovedOne);
+      },
 
       updateLovedOne: (patch) => {
-        const cur = get().lovedOne;
+        const s = get();
+        const cur = s.lovedOne;
         if (!cur) return;
-        set({ lovedOne: { ...cur, ...patch } });
+        const next = { ...cur, ...patch };
+        set({
+          lovedOne: next,
+          roster: s.roster.map((r) => (r.id === next.id ? next : r)),
+        });
+        upsertRecipient(next);
+      },
+
+      // Switch which recipient is active (the "mirror" swap): stash the current
+      // slice, load the target's. Existing screens keep reading the top-level fields.
+      setActiveRecipient: (id) => {
+        const s = get();
+        if (s.activeLovedOneId === id) return;
+        const recipients = { ...s.recipients };
+        if (s.activeLovedOneId) recipients[s.activeLovedOneId] = snapshotActive(s);
+        const slice = recipients[id] ?? emptySlice();
+        recipients[id] = slice;
+        set({
+          activeLovedOneId: id,
+          recipients,
+          lovedOne: s.roster.find((r) => r.id === id) ?? null,
+          medications: slice.medications,
+          doseLogs: slice.doseLogs,
+          events: slice.events,
+          lastActivityAt: slice.lastActivityAt,
+          checkIn: slice.checkIn,
+        });
+      },
+
+      // Home device: bind to a recipient by join code. Looks in the local roster
+      // first (single-device demo), then the cloud RPC (real cross-device).
+      bindByCode: async (code) => {
+        const norm = code.trim().toUpperCase();
+        if (!norm) return false;
+        let target = get().roster.find((r) => r.pairingCode === norm) ?? null;
+        if (!target && isSupabaseConfigured) target = await redeemCode(norm);
+        if (!target) return false;
+
+        const bound: LovedOne = { ...target, paired: true };
+        const s = get();
+        const inRoster = s.roster.some((r) => r.id === bound.id);
+        const roster = inRoster
+          ? s.roster.map((r) => (r.id === bound.id ? bound : r))
+          : [...s.roster, bound];
+
+        // If we're binding to the recipient that's already active, the live data
+        // is in the top-level fields — keep it, don't reload the (stale) slice.
+        if (s.activeLovedOneId === bound.id) {
+          set({ role: 'senior', seniorBoundId: bound.id, roster, lovedOne: bound });
+          upsertRecipient(bound);
+          return true;
+        }
+
+        const recipients = { ...s.recipients };
+        if (s.activeLovedOneId) recipients[s.activeLovedOneId] = snapshotActive(s);
+        const slice = recipients[bound.id] ?? emptySlice();
+        recipients[bound.id] = slice;
+        set({
+          role: 'senior',
+          seniorBoundId: bound.id,
+          roster,
+          recipients,
+          activeLovedOneId: bound.id,
+          lovedOne: bound,
+          medications: slice.medications,
+          doseLogs: slice.doseLogs,
+          events: slice.events,
+          lastActivityAt: slice.lastActivityAt,
+          checkIn: slice.checkIn,
+        });
+        upsertRecipient(bound);
+        return true;
       },
 
       confirmPairing: (code) => {
         const cur = get().lovedOne;
         if (!cur) return false;
         const ok = code.trim().toUpperCase() === cur.pairingCode;
-        if (ok) set({ lovedOne: { ...cur, paired: true } });
+        if (ok) get().updateLovedOne({ paired: true });
         return ok;
       },
 
@@ -154,7 +314,7 @@ export const useStore = create<Store>()(
           lastActivityAt: bumpsActivity ? event.at : get().lastActivityAt,
         });
         // The one seam that would push to the backend in production.
-        maybeSyncEvent(event);
+        maybeSyncEvent(event, get().activeLovedOneId);
         return event;
       },
 
