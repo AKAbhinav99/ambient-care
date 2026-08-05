@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { useStore } from '../../lib/store';
 import { useT } from '../../i18n';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
+import { EmergencyCardEdit } from './EmergencyCardEdit';
 import type { LovedOne, Medication } from '../../types';
 
 function ageFrom(dob?: string): number | null {
@@ -41,7 +42,9 @@ export function EmergencyCardScreen() {
   const navigation = useNavigation();
   const lovedOne = useStore((s) => s.lovedOne);
   const medications = useStore((s) => s.medications);
+  const role = useStore((s) => s.role);
   const { t } = useT();
+  const [editing, setEditing] = useState(false);
 
   if (!lovedOne) {
     return (
@@ -53,6 +56,12 @@ export function EmergencyCardScreen() {
     );
   }
 
+  // Only the caregiver can change the card; the senior just shows it.
+  const canEdit = role === 'caregiver';
+  if (editing && canEdit) {
+    return <EmergencyCardEdit lovedOne={lovedOne} onDone={() => setEditing(false)} />;
+  }
+
   const age = ageFrom(lovedOne.dob);
   const call = (phone: string) => Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`);
   const onShare = () => Share.share({ message: buildShareText(lovedOne, medications) }).catch(() => {});
@@ -61,9 +70,17 @@ export function EmergencyCardScreen() {
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
-          <View style={styles.badgeRow}>
-            <Icon name="shield-plus" size={18} color={colors.urgent} strokeWidth={2.4} />
-            <Text style={styles.badge}>{t.emergency.badge}</Text>
+          <View style={styles.headTop}>
+            <View style={styles.badgeRow}>
+              <Icon name="shield-plus" size={18} color={colors.urgent} strokeWidth={2.4} />
+              <Text style={styles.badge}>{t.emergency.badge}</Text>
+            </View>
+            {canEdit ? (
+              <Pressable style={styles.editBtn} onPress={() => setEditing(true)} hitSlop={8} accessibilityRole="button">
+                <Icon name="pencil" size={15} color={colors.accentInk} strokeWidth={2.2} />
+                <Text style={styles.editText}>Edit</Text>
+              </Pressable>
+            ) : null}
           </View>
           <Text style={styles.name}>
             {lovedOne.name}
@@ -181,6 +198,17 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: type.bodyLg, color: colors.inkSoft, textAlign: 'center' },
 
   header: { marginBottom: space.lg },
+  headTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+  },
+  editText: { color: colors.accentInk, fontFamily: font.bodyBold, fontSize: type.caption },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   badge: { fontFamily: font.bodyBold, fontSize: type.caption, color: colors.urgent, letterSpacing: 1.3 },
   name: { fontFamily: font.display, fontSize: type.seniorTitle, color: colors.ink, marginTop: space.xs },
@@ -212,7 +240,7 @@ const styles = StyleSheet.create({
   allergyBox: { backgroundColor: colors.urgentSoft, borderColor: colors.urgent, borderWidth: 2 },
   allergyLabel: { fontFamily: font.bodyBold, fontSize: type.caption, letterSpacing: 1.1, color: colors.urgentInk, marginBottom: space.sm },
   allergyRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.xs },
-  allergyItem: { fontFamily: font.headingBold, fontSize: type.title, color: colors.ink },
+  allergyItem: { flex: 1, fontFamily: font.headingBold, fontSize: type.title, color: colors.ink },
 
   contact: {
     flexDirection: 'row',

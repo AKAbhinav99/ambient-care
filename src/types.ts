@@ -1,6 +1,7 @@
 /** Shared domain types for both surfaces. */
 
 import type { LangCode } from './i18n/config';
+import type { ColorScheme } from './theme/tokens';
 
 export type Role = 'caregiver' | 'senior';
 
@@ -24,6 +25,10 @@ export interface LovedOne {
   voiceId?: string; // chosen expo-speech voice identifier (accent + gender)
   voiceRegion?: string; // BCP-47 tag of the chosen voice, e.g. "es-MX"
   speechRate?: number; // spoken rate override (defaults to 0.92)
+
+  // --- Accessibility (senior surface) ---
+  dyslexiaFont?: boolean; // easy-read font (Atkinson Hyperlegible) + wider tracking
+  colorScheme?: ColorScheme; // color-blind-friendly status palette
 
   // --- Medical profile (powers the Emergency Med Card) ---
   dob?: string; // ISO date; age is derived

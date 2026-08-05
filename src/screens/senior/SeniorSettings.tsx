@@ -6,7 +6,7 @@ import { useT } from '../../i18n';
 import { Card } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Icon, type IconName } from '../../components/ui/Icon';
-import { colors, space, type, radius, font } from '../../theme/tokens';
+import { colors, space, type, radius, font, statusSwatches, type ColorScheme } from '../../theme/tokens';
 import type { SeniorProps } from '../../navigation/types';
 
 export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
@@ -47,6 +47,20 @@ export function SeniorSettings({ navigation }: SeniorProps<'SeniorSettings'>) {
               </View>
               <Text style={styles.dotText}>{t.settings.orangeDotText}</Text>
             </Card>
+
+            {/* Accessibility */}
+            <ToggleCard
+              icon="file-text"
+              title={t.settings.easyReadTitle}
+              desc={t.settings.easyReadDesc}
+              value={lovedOne.dyslexiaFont ?? false}
+              onToggle={(v) => updateLovedOne({ dyslexiaFont: v })}
+            />
+
+            <ColorSchemeCard
+              value={lovedOne.colorScheme ?? 'default'}
+              onSelect={(c) => updateLovedOne({ colorScheme: c })}
+            />
           </>
         ) : (
           <Text style={styles.note}>{t.settings.askFamilySetup}</Text>
@@ -117,6 +131,49 @@ function ToggleCard({
   );
 }
 
+/** Color-blind-friendly palette picker — each option previews its status swatches. */
+function ColorSchemeCard({ value, onSelect }: { value: ColorScheme; onSelect: (c: ColorScheme) => void }) {
+  const { t } = useT();
+  const options: { key: ColorScheme; label: string }[] = [
+    { key: 'default', label: t.settings.colorNormal },
+    { key: 'redGreen', label: t.settings.colorRedGreen },
+    { key: 'blueYellow', label: t.settings.colorBlueYellow },
+  ];
+  return (
+    <Card style={styles.schemeCard}>
+      <View style={styles.schemeHead}>
+        <View style={styles.toggleIconWell}>
+          <Icon name="droplet" size={22} color={colors.accentInk} strokeWidth={2} />
+        </View>
+        <Text style={styles.toggleTitle}>{t.settings.colorTitle}</Text>
+      </View>
+      <Text style={styles.toggleDesc}>{t.settings.colorDesc}</Text>
+      <View style={styles.schemeOptions}>
+        {options.map((o) => {
+          const active = value === o.key;
+          return (
+            <Pressable
+              key={o.key}
+              onPress={() => onSelect(o.key)}
+              style={[styles.schemeRow, active && styles.schemeRowOn]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+            >
+              <View style={styles.swatches}>
+                {statusSwatches(o.key).map((c, i) => (
+                  <View key={i} style={[styles.swatch, { backgroundColor: c }]} />
+                ))}
+              </View>
+              <Text style={[styles.schemeLabel, active && styles.schemeLabelOn]}>{o.label}</Text>
+              {active ? <Icon name="check" size={22} color={colors.accentInk} strokeWidth={2.6} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   scroll: { padding: space.lg },
@@ -137,6 +194,27 @@ const styles = StyleSheet.create({
   toggleDesc: { fontFamily: font.body, fontSize: type.body, color: colors.inkSoft, marginTop: space.sm, lineHeight: type.body * 1.4 },
 
   dotCard: { backgroundColor: colors.surfaceSunken, marginBottom: space.md },
+
+  schemeCard: { marginBottom: space.md },
+  schemeHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  schemeOptions: { marginTop: space.md, gap: space.sm },
+  schemeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    minHeight: 52,
+  },
+  schemeRowOn: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  swatches: { flexDirection: 'row', gap: 4 },
+  swatch: { width: 18, height: 18, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
+  schemeLabel: { flex: 1, fontFamily: font.bodyMed, fontSize: type.body, color: colors.ink },
+  schemeLabelOn: { color: colors.accentInk, fontFamily: font.bodyBold },
   dotRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   orangeDot: { width: 16, height: 16, borderRadius: radius.pill, backgroundColor: '#F5A623' },
   dotTitle: { fontSize: type.bodyLg, fontWeight: '700', color: colors.ink },

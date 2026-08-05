@@ -82,9 +82,18 @@ export function BigButton({
           </View>
         ) : null}
         <View style={styles.labels}>
-          <Text style={[styles.label, isXl && styles.labelXl, { color: p.fg }]}>{label}</Text>
+          <Text
+            style={[styles.label, isXl && styles.labelXl, { color: p.fg }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+          >
+            {label}
+          </Text>
           {sublabel ? (
-            <Text style={[styles.sub, isXl && styles.subXl, { color: p.fg }]}>{sublabel}</Text>
+            <Text style={[styles.sub, isXl && styles.subXl, { color: p.fg }]} numberOfLines={2}>
+              {sublabel}
+            </Text>
           ) : null}
         </View>
       </Pressable>
@@ -116,7 +125,7 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: radius.md,
   },
-  labels: { flexShrink: 1 },
+  labels: { flex: 1, minWidth: 0 },
   label: { fontFamily: font.headingBold, fontSize: type.bodyLg },
   labelXl: { fontFamily: font.headingBold, fontSize: type.title },
   sub: { fontFamily: font.body, fontSize: type.caption, opacity: 0.9, marginTop: 2 },

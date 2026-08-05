@@ -10,6 +10,10 @@ import {
   SourceSans3_600SemiBold,
   SourceSans3_700Bold,
 } from '@expo-google-fonts/source-sans-3';
+import {
+  AtkinsonHyperlegible_400Regular,
+  AtkinsonHyperlegible_700Bold,
+} from '@expo-google-fonts/atkinson-hyperlegible';
 import './src/theme/applyFonts';
 import { useStore } from './src/lib/store';
 import { I18nProvider } from './src/i18n';
@@ -52,6 +56,8 @@ export default function App() {
     SourceSans3_400Regular,
     SourceSans3_600SemiBold,
     SourceSans3_700Bold,
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
   });
 
   const ready = hydrated && fontsLoaded;

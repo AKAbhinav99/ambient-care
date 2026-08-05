@@ -24,6 +24,7 @@ type Renderable = { render?: (...args: unknown[]) => StyledElement };
 
 let currentScript: Script = 'latin';
 let currentDir: Dir = 'ltr';
+let currentDyslexia = false;
 
 /** Map the app's custom Latin families to a weight, for the system-font fallback. */
 const FAMILY_WEIGHT: Record<string, TextStyle['fontWeight']> = {
@@ -35,26 +36,64 @@ const FAMILY_WEIGHT: Record<string, TextStyle['fontWeight']> = {
   SourceSans3_700Bold: '700',
 };
 
+/** Families that read as bold — mapped to Atkinson's bold in easy-read mode. */
+const BOLD_FAMILIES = new Set(['Lexend_700Bold', 'Lexend_600SemiBold', 'SourceSans3_700Bold', 'SourceSans3_600SemiBold']);
+const BOLD_WEIGHTS = new Set(['600', '700', '800', '900', 'bold']);
+
 /** Called by the I18nProvider whenever the active language changes. */
 export function setActiveLocale(script: Script, dir: Dir): void {
   currentScript = script;
   currentDir = dir;
 }
 
-function baseStyle(): TextStyle {
-  if (currentScript === 'latin') return { fontFamily: font.body };
-  // Non-Latin: system font (no custom family). Right-align for RTL (Arabic).
-  return currentDir === 'rtl' ? { textAlign: 'right', writingDirection: 'rtl' } : {};
+/** Easy-read (dyslexia) mode: swap every Text to Atkinson Hyperlegible + tracking. */
+export function setDyslexiaFont(on: boolean): void {
+  currentDyslexia = on;
 }
 
-/** For non-Latin scripts, swap any Latin family for the system font + its weight. */
+function wantsBold(style: TextStyle): boolean {
+  if (style.fontFamily && BOLD_FAMILIES.has(style.fontFamily)) return true;
+  return style.fontWeight != null && BOLD_WEIGHTS.has(String(style.fontWeight));
+}
+
+function baseStyle(): TextStyle {
+  const rtl = currentDir === 'rtl';
+  if (currentDyslexia) {
+    // Wider tracking aids letter separation; Atkinson only covers Latin, so the
+    // non-Latin scripts keep the system font (still highly legible) + tracking.
+    const b: TextStyle = { letterSpacing: 0.4 };
+    if (currentScript === 'latin') b.fontFamily = font.dyslexic;
+    if (rtl) {
+      b.textAlign = 'right';
+      b.writingDirection = 'rtl';
+    }
+    return b;
+  }
+  if (currentScript === 'latin') return { fontFamily: font.body };
+  // Non-Latin: system font (no custom family). Right-align for RTL (Arabic).
+  return rtl ? { textAlign: 'right', writingDirection: 'rtl' } : {};
+}
+
+/** Rewrite each Text's family for the active locale + easy-read mode. */
 function localizeStyle(ownStyle: unknown): unknown {
   const base = baseStyle();
-  if (currentScript === 'latin') {
-    // Preserve the original behavior exactly for Latin languages.
-    return [base, ownStyle];
-  }
+  // Fast path: default Latin, no easy-read — preserve the original behavior exactly.
+  if (!currentDyslexia && currentScript === 'latin') return [base, ownStyle];
+
   const flat = StyleSheet.flatten([base, ownStyle as TextStyle]) as TextStyle;
+
+  if (currentDyslexia) {
+    if (currentScript === 'latin') {
+      // Force Atkinson everywhere, honoring the original bold/regular intent.
+      flat.fontFamily = wantsBold(flat) ? font.dyslexicBold : font.dyslexic;
+    } else if (flat.fontFamily && FAMILY_WEIGHT[flat.fontFamily]) {
+      flat.fontWeight = flat.fontWeight ?? FAMILY_WEIGHT[flat.fontFamily];
+      flat.fontFamily = undefined;
+    }
+    return flat;
+  }
+
+  // Non-Latin, default mode: swap any Latin family for the system font + its weight.
   if (flat.fontFamily && FAMILY_WEIGHT[flat.fontFamily]) {
     return { ...flat, fontFamily: undefined, fontWeight: flat.fontWeight ?? FAMILY_WEIGHT[flat.fontFamily] };
   }
