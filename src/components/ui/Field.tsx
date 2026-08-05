@@ -10,6 +10,7 @@ interface FieldProps {
   autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
   keyboardType?: KeyboardTypeOptions;
   secure?: boolean; // password entry (masks input)
+  multiline?: boolean; // grows for longer freeform text (e.g. clinical notes)
 }
 
 export function Field({
@@ -20,12 +21,13 @@ export function Field({
   autoCapitalize = 'sentences',
   keyboardType,
   secure,
+  multiline,
 }: FieldProps) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, multiline && styles.inputMultiline]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -33,6 +35,9 @@ export function Field({
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
         secureTextEntry={secure}
+        multiline={multiline}
+        numberOfLines={multiline ? 4 : 1}
+        textAlignVertical={multiline ? 'top' : 'center'}
       />
     </View>
   );
@@ -58,4 +63,5 @@ const styles = StyleSheet.create({
     fontSize: type.body,
     color: colors.ink,
   },
+  inputMultiline: { minHeight: 96, paddingTop: space.sm + 3 },
 });

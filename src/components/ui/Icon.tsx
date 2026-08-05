@@ -137,6 +137,12 @@ const ICONS = {
   activity: [{ d: 'M22 12h-4l-3 9L9 3l-3 9H2' }],
   dot: [{ circle: [12, 12, 2] }],
   pencil: [{ d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z' }, { d: 'm15 5 4 4' }],
+  calendar: [
+    { rect: [3, 4, 18, 18, 2] },
+    { line: [16, 2, 16, 6] },
+    { line: [8, 2, 8, 6] },
+    { line: [3, 10, 21, 10] },
+  ],
 } satisfies Record<string, Prim[]>;
 
 export type IconName = keyof typeof ICONS;

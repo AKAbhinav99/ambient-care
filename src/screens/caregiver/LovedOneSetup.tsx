@@ -6,8 +6,11 @@ import { LANGUAGES, DEFAULT_LANG } from '../../i18n';
 import { Card, SectionLabel } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Field } from '../../components/ui/Field';
+import { DateField } from '../../components/ui/DateField';
+import { ChipField } from '../../components/ui/ChipField';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
+import { BLOOD_TYPES } from '../../lib/constants';
 import type { CaregiverProps } from '../../navigation/types';
 import type { EmergencyContact, LovedOne } from '../../types';
 
@@ -215,8 +218,8 @@ function MedicalProfile({
     <>
       <SectionLabel>Medical profile (emergency card)</SectionLabel>
       <Card style={{ marginBottom: space.lg }}>
-        <Field label="Date of birth" value={dob} onChangeText={setDob} placeholder="1944-03-12" autoCapitalize="none" />
-        <Field label="Blood type" value={bloodType} onChangeText={setBloodType} placeholder="O+" autoCapitalize="characters" />
+        <DateField label="Date of birth" value={dob} onChange={setDob} />
+        <ChipField label="Blood type" options={BLOOD_TYPES} value={bloodType} onChange={setBloodType} />
         <Field label="Allergies (comma-separated)" value={allergies} onChangeText={setAllergies} placeholder="Penicillin, Sulfa" />
         <Field
           label="Conditions (comma-separated)"
@@ -226,7 +229,7 @@ function MedicalProfile({
         />
         <Field label="Doctor" value={doctor} onChangeText={setDoctor} placeholder="Dr. Ede — (512) 555-0140" />
         <Field label="Pharmacy" value={pharmacy} onChangeText={setPharmacy} placeholder="CVS on Main — (512) 555-0170" />
-        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Pacemaker since 2019" />
+        <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Pacemaker since 2019" multiline />
 
         <Text style={styles.profileLabel}>Emergency contacts</Text>
         {contacts.map((c, i) => (

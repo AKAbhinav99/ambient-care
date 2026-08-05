@@ -6,8 +6,11 @@ import { LANGUAGES, DEFAULT_LANG } from '../../i18n';
 import { Card, SectionLabel } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Field } from '../../components/ui/Field';
+import { DateField } from '../../components/ui/DateField';
+import { ChipField } from '../../components/ui/ChipField';
 import { Icon } from '../../components/ui/Icon';
 import { colors, space, type, radius, font } from '../../theme/tokens';
+import { BLOOD_TYPES } from '../../lib/constants';
 import type { CaregiverProps } from '../../navigation/types';
 import type { EmergencyContact } from '../../types';
 import type { LangCode } from '../../i18n/config';
@@ -27,6 +30,7 @@ export function AddRecipientScreen({ navigation }: CaregiverProps<'AddRecipient'
   const [rel, setRel] = useState('');
   const [language, setLanguage] = useState<LangCode>(DEFAULT_LANG);
   const [dob, setDob] = useState('');
+  const [bloodType, setBloodType] = useState('');
   const [conditions, setConditions] = useState('');
   const [allergies, setAllergies] = useState('');
   const [contactName, setContactName] = useState('');
@@ -45,6 +49,7 @@ export function AddRecipientScreen({ navigation }: CaregiverProps<'AddRecipient'
     updateLovedOne({
       language,
       dob: dob.trim() || undefined,
+      bloodType: bloodType.trim() || undefined,
       conditions: fromCsv(conditions),
       allergies: fromCsv(allergies),
       emergencyContacts: contacts,
@@ -67,7 +72,7 @@ export function AddRecipientScreen({ navigation }: CaregiverProps<'AddRecipient'
         <Card style={{ marginBottom: space.lg }}>
           <Field label="Their name" value={name} onChangeText={setName} placeholder="Rose" autoCapitalize="words" />
           <Field label="Your relationship to them" value={rel} onChangeText={setRel} placeholder="Mother" autoCapitalize="words" />
-          <Field label="Date of birth" value={dob} onChangeText={setDob} placeholder="1944-03-12" autoCapitalize="none" />
+          <DateField label="Date of birth" value={dob} onChange={setDob} />
         </Card>
 
         <SectionLabel>Language of the home device</SectionLabel>
@@ -91,6 +96,7 @@ export function AddRecipientScreen({ navigation }: CaregiverProps<'AddRecipient'
 
         <SectionLabel>Health basics (for the emergency card)</SectionLabel>
         <Card style={{ marginBottom: space.lg }}>
+          <ChipField label="Blood type" options={BLOOD_TYPES} value={bloodType} onChange={setBloodType} />
           <Field label="Conditions (comma-separated)" value={conditions} onChangeText={setConditions} placeholder="Atrial fibrillation, Diabetes" />
           <Field label="Allergies (comma-separated)" value={allergies} onChangeText={setAllergies} placeholder="Penicillin, Sulfa" />
         </Card>

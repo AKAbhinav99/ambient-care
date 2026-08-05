@@ -14,7 +14,10 @@ import { useStore } from '../../lib/store';
 import { Card } from '../../components/ui/Card';
 import { BigButton } from '../../components/ui/BigButton';
 import { Field } from '../../components/ui/Field';
+import { DateField } from '../../components/ui/DateField';
+import { ChipField } from '../../components/ui/ChipField';
 import { colors, space, type, font } from '../../theme/tokens';
+import { BLOOD_TYPES } from '../../lib/constants';
 import type { EmergencyContact, LovedOne } from '../../types';
 
 function fromCsv(s: string): string[] {
@@ -76,8 +79,8 @@ export function EmergencyCardEdit({ lovedOne, onDone }: { lovedOne: LovedOne; on
 
         <Card style={{ marginTop: space.lg }}>
           <Field label="Name" value={name} onChangeText={setName} autoCapitalize="words" />
-          <Field label="Date of birth" value={dob} onChangeText={setDob} placeholder="1944-03-12" autoCapitalize="none" />
-          <Field label="Blood type" value={bloodType} onChangeText={setBloodType} placeholder="O+" autoCapitalize="characters" />
+          <DateField label="Date of birth" value={dob} onChange={setDob} />
+          <ChipField label="Blood type" options={BLOOD_TYPES} value={bloodType} onChange={setBloodType} />
           <Field label="Allergies (comma-separated)" value={allergies} onChangeText={setAllergies} placeholder="Penicillin, Sulfa" />
           <Field
             label="Conditions (comma-separated)"
@@ -87,7 +90,7 @@ export function EmergencyCardEdit({ lovedOne, onDone }: { lovedOne: LovedOne; on
           />
           <Field label="Doctor" value={doctor} onChangeText={setDoctor} placeholder="Dr. Ede — (512) 555-0140" />
           <Field label="Pharmacy" value={pharmacy} onChangeText={setPharmacy} placeholder="CVS on Main — (512) 555-0170" />
-          <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Pacemaker since 2019" />
+          <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Pacemaker since 2019" multiline />
         </Card>
 
         <Text style={styles.section}>Emergency contacts</Text>
