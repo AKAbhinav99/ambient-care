@@ -20,6 +20,7 @@ import type {
   Account,
   CareEvent,
   CareState,
+  ChatMessage,
   DoseLog,
   EventKind,
   EventSeverity,
@@ -29,13 +30,16 @@ import type {
   Role,
 } from '../types';
 import {
+  fetchMessagesRemote,
   fetchRoster,
   isSupabaseConfigured,
   maybeSyncEvent,
   redeemCode,
+  sendMessageRemote,
   upsertRecipient,
 } from './supabase';
 import { signOut as authSignOut } from './auth';
+import { mergeMessages } from './chat';
 import { overdueUnmarked, todaysDoses, type DoseSlot } from './adherence';
 import { refillStatus } from './refill';
 import { fireAlert } from './notifications';
@@ -55,7 +59,9 @@ const emptySlice = (): RecipientData => ({
   doseLogs: [],
   events: [],
   lastActivityAt: null,
-  checkIn: null,
+  messages: [],
+  lastSeenBySeniorAt: null,
+  lastSeenByCaregiverAt: null,
 });
 
 /** Snapshot the active recipient's live top-level fields into a slice. */
@@ -64,7 +70,9 @@ const snapshotActive = (s: CareState): RecipientData => ({
   doseLogs: s.doseLogs,
   events: s.events,
   lastActivityAt: s.lastActivityAt,
-  checkIn: s.checkIn,
+  messages: s.messages,
+  lastSeenBySeniorAt: s.lastSeenBySeniorAt,
+  lastSeenByCaregiverAt: s.lastSeenByCaregiverAt,
 });
 
 const firstNameOf = (lovedOne: LovedOne | null) => lovedOne?.name?.split(' ')[0] ?? 'Your loved one';
@@ -112,8 +120,10 @@ interface CareActions {
   markDoseSkipped: (medId: string, scheduledAt: number) => void;
   reconcileDoses: (now?: number) => void;
 
-  sendCheckIn: (message: string) => void;
-  clearCheckIn: () => void;
+  // Chat (active recipient's thread)
+  sendMessage: (body: string) => void;
+  syncMessages: () => Promise<void>;
+  markSeen: (role: Role) => void;
 
   seedDemo: () => void;
   clearEvents: () => void;
@@ -135,7 +145,9 @@ const initial: CareState = {
   doseLogs: [],
   lastActivityAt: null,
   ambientRunning: false,
-  checkIn: null,
+  messages: [],
+  lastSeenBySeniorAt: null,
+  lastSeenByCaregiverAt: null,
 };
 
 export const useStore = create<Store>()(
@@ -202,7 +214,9 @@ export const useStore = create<Store>()(
           doseLogs: [],
           events: [],
           lastActivityAt: null,
-          checkIn: null,
+          messages: [],
+          lastSeenBySeniorAt: null,
+          lastSeenByCaregiverAt: null,
         });
         upsertRecipient(lovedOne);
       },
@@ -236,7 +250,9 @@ export const useStore = create<Store>()(
           doseLogs: slice.doseLogs,
           events: slice.events,
           lastActivityAt: slice.lastActivityAt,
-          checkIn: slice.checkIn,
+          messages: slice.messages,
+          lastSeenBySeniorAt: slice.lastSeenBySeniorAt,
+          lastSeenByCaregiverAt: slice.lastSeenByCaregiverAt,
         });
       },
 
@@ -279,7 +295,9 @@ export const useStore = create<Store>()(
           doseLogs: slice.doseLogs,
           events: slice.events,
           lastActivityAt: slice.lastActivityAt,
-          checkIn: slice.checkIn,
+          messages: slice.messages,
+          lastSeenBySeniorAt: slice.lastSeenBySeniorAt,
+          lastSeenByCaregiverAt: slice.lastSeenByCaregiverAt,
         });
         upsertRecipient(bound);
         return true;
@@ -438,8 +456,52 @@ export const useStore = create<Store>()(
         });
       },
 
-      sendCheckIn: (message) => set({ checkIn: message }),
-      clearCheckIn: () => set({ checkIn: null }),
+      // Append to the active recipient's thread, sender derived from this device's
+      // current role. Local append is immediate; the remote push is best-effort and
+      // never blocks (same fire-and-forget pattern as upsertRecipient/maybeSyncEvent).
+      sendMessage: (body) => {
+        const s = get();
+        const trimmed = body.trim();
+        if (!trimmed || !s.activeLovedOneId) return;
+        const sender = s.role === 'senior' ? 'senior' : 'caregiver';
+        const message: ChatMessage = {
+          id: uid(),
+          lovedOneId: s.activeLovedOneId,
+          sender,
+          body: trimmed,
+          at: Date.now(),
+        };
+        set({ messages: [...s.messages, message] });
+        sendMessageRemote(message);
+        // A message from the senior is news for the caregiver's activity feed —
+        // matches the convention already used for a manual dose-taken tap.
+        if (sender === 'senior') {
+          get().logEvent({
+            kind: 'activity',
+            severity: 'info',
+            title: `${firstNameOf(s.lovedOne)} sent a message`,
+            detail: trimmed,
+          });
+        }
+      },
+
+      // Poll for new messages since the last one we have locally, merged in by id.
+      // Cloud-only (no-op when Supabase isn't configured); called on Chat screen
+      // focus and piggybacked on SeniorHome's existing clock-tick interval.
+      syncMessages: async () => {
+        const s = get();
+        if (!s.activeLovedOneId || !isSupabaseConfigured) return;
+        const lastAt = s.messages.length ? s.messages[s.messages.length - 1].at : 0;
+        const incoming = await fetchMessagesRemote(s.activeLovedOneId, lastAt);
+        if (!incoming.length) return;
+        set({ messages: mergeMessages(get().messages, incoming) });
+      },
+
+      markSeen: (role) => {
+        const now = Date.now();
+        if (role === 'senior') set({ lastSeenBySeniorAt: now });
+        else set({ lastSeenByCaregiverAt: now });
+      },
 
       seedDemo: () => {
         get().createLovedOne('Rose', 'Mother');

@@ -23,6 +23,7 @@ export const hi: Messages = {
     emergencyCard: 'आपातकालीन कार्ड',
     language: 'भाषा',
     voice: 'आवाज़',
+    chat: 'संदेश',
   },
 
   role: {
@@ -49,6 +50,8 @@ export const hi: Messages = {
     talkSub: 'अपनी दवाइयाँ पूछें, या परिवार को कॉल करें',
     emergencyLabel: 'आपातकालीन कार्ड',
     emergencySub: 'मदद करने वालों के लिए आपकी दवाइयाँ और संपर्क',
+    messagesLabel: 'संदेश',
+    messagesSub: 'यहीं से परिवार को संदेश भेजें',
     listening: (name) => `मैं सुन रहा हूँ, ${name} का ध्यान रख रहा हूँ`,
     demoLevel: 'डेमो स्तर',
     listeningOff: 'सुरक्षा श्रवण बंद है — चालू करने के लिए टैप करें',
@@ -184,6 +187,16 @@ export const hi: Messages = {
     noVoiceBody: (language) =>
       `आपके उपकरण में अभी ${language} के लिए कोई आवाज़ नहीं है। टेक्स्ट पूरी तरह अनुवादित है। आप अपने उपकरण की “Spoken Content” सेटिंग में आवाज़ जोड़ सकते हैं।`,
     moreVoices: 'और आवाज़ें iOS सेटिंग्स › Accessibility › Spoken Content › Voices में जोड़ी जा सकती हैं।',
+  },
+
+  chat: {
+    placeholder: 'संदेश लिखें…',
+    send: 'भेजें',
+    emptyTitle: 'अभी तक कोई संदेश नहीं',
+    emptyBody: 'नीचे पहला संदेश भेजें।',
+    quickLoveToo: 'मैं भी आपसे प्यार करता हूँ ❤️',
+    quickOkay: 'मैं ठीक हूँ',
+    quickCallMe: 'मुझे कॉल करें',
   },
 
   notif: {

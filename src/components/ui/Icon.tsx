@@ -143,6 +143,12 @@ const ICONS = {
     { line: [8, 2, 8, 6] },
     { line: [3, 10, 21, 10] },
   ],
+  send: [
+    {
+      d: 'M14.5 21.5c.2.2.5.1.6-.1l6.4-18.9c.1-.3-.2-.6-.5-.5L2.1 8.4c-.3.1-.3.5-.1.6l7.8 3.1c.2.1.4.3.5.5Z',
+    },
+    { d: 'M21.6 2.4 10.6 13.4' },
+  ],
 } satisfies Record<string, Prim[]>;
 
 export type IconName = keyof typeof ICONS;

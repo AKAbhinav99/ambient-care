@@ -15,6 +15,7 @@ export type CaregiverStackParams = {
   Adherence: undefined;
   Interactions: undefined;
   EmergencyCard: undefined;
+  Chat: undefined;
 };
 
 export type SeniorStackParams = {
@@ -26,6 +27,7 @@ export type SeniorStackParams = {
   EmergencyCard: undefined;
   Language: undefined;
   VoicePicker: undefined;
+  Chat: undefined;
 };
 
 export type AuthProps<T extends keyof AuthStackParams> = NativeStackScreenProps<AuthStackParams, T>;

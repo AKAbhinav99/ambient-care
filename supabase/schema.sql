@@ -87,6 +87,18 @@ create table if not exists dose_logs (
   created_at    timestamptz not null default now()
 );
 
+-- Chat thread between the caregiver and the recipient's home device.
+create table if not exists messages (
+  id            uuid primary key default gen_random_uuid(),
+  loved_one_id  uuid references loved_ones (id) on delete cascade,
+  sender        text not null,          -- caregiver | senior
+  body          text not null,
+  occurred_at   timestamptz not null default now()
+);
+
+create index if not exists messages_loved_one_time_idx
+  on messages (loved_one_id, occurred_at);
+
 -- The event stream — the caregiver dashboard subscribes to this via realtime.
 create table if not exists care_events (
   id            uuid primary key default gen_random_uuid(),
@@ -106,6 +118,7 @@ alter table loved_ones  enable row level security;
 alter table medications enable row level security;
 alter table dose_logs   enable row level security;
 alter table care_events enable row level security;
+alter table messages    enable row level security;
 
 drop policy if exists "own households" on loved_ones;
 create policy "own households" on loved_ones
@@ -129,6 +142,15 @@ create policy "own events" on care_events
     loved_one_id in (select id from loved_ones where caregiver_id = auth.uid())
   );
 
+-- The caregiver's own direct-table access; the unauthenticated home device goes
+-- through the send_message/fetch_messages RPCs below instead (same reason as
+-- redeem_code — RLS keyed on auth.uid() can't cover a device with no account).
+drop policy if exists "own messages" on messages;
+create policy "own messages" on messages
+  for all using (
+    loved_one_id in (select id from loved_ones where caregiver_id = auth.uid())
+  );
+
 -- ── Join-code redemption for the (unauthenticated) home device ────────────────
 -- The senior device has no account, so RLS would block it from reading a
 -- recipient. This SECURITY DEFINER function lets it bind by code and marks the
@@ -142,6 +164,29 @@ returns setof loved_ones language sql security definer set search_path = public 
   returning *;
 $$;
 grant execute on function redeem_code(text) to anon, authenticated;
+
+-- ── Chat: send/fetch for the (unauthenticated) home device ────────────────────
+-- Both the caregiver app and the home device call these two RPCs (one code path
+-- for both sides), so a plain RLS-gated table insert/select is never required from
+-- the unauthenticated side. Sync is polling (see src/lib/store.ts syncMessages),
+-- not a Realtime subscription — deliberately, to avoid relying on Realtime's
+-- postgres_changes authorization behaving correctly for the anon role.
+create or replace function send_message(p_loved_one_id uuid, p_sender text, p_body text)
+returns setof messages language sql security definer set search_path = public as $$
+  insert into messages (loved_one_id, sender, body)
+  values (p_loved_one_id, p_sender, p_body)
+  returning *;
+$$;
+grant execute on function send_message(uuid, text, text) to anon, authenticated;
+
+create or replace function fetch_messages(p_loved_one_id uuid, p_since timestamptz)
+returns setof messages language sql security definer set search_path = public as $$
+  select * from messages
+   where loved_one_id = p_loved_one_id
+     and occurred_at > p_since
+   order by occurred_at asc;
+$$;
+grant execute on function fetch_messages(uuid, timestamptz) to anon, authenticated;
 
 -- Stream care_events to subscribed clients in real time.
 alter publication supabase_realtime add table care_events;

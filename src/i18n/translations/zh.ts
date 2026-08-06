@@ -23,6 +23,7 @@ export const zh: Messages = {
     emergencyCard: '急救卡',
     language: '语言',
     voice: '语音',
+    chat: '消息',
   },
 
   role: {
@@ -49,6 +50,8 @@ export const zh: Messages = {
     talkSub: '让我读药单，或给家人打电话',
     emergencyLabel: '急救卡',
     emergencySub: '你的药物和联系人，供帮助你的人查看',
+    messagesLabel: '消息',
+    messagesSub: '在这里给家人发消息',
     listening: (name) => `我在听着，守护着${name}`,
     demoLevel: '演示音量',
     listeningOff: '安全聆听已关闭——点按开启',
@@ -182,6 +185,16 @@ export const zh: Messages = {
     noVoiceBody: (language) =>
       `你的设备还没有${language}的语音。文字已完全翻译。你可以在设备的“朗读内容”设置里添加语音。`,
     moreVoices: '可在 iOS 设置 › 辅助功能 › 朗读内容 › 语音 中添加更多语音。',
+  },
+
+  chat: {
+    placeholder: '输入消息…',
+    send: '发送',
+    emptyTitle: '还没有消息',
+    emptyBody: '在下面发送第一条消息。',
+    quickLoveToo: '我也爱你 ❤️',
+    quickOkay: '我很好',
+    quickCallMe: '给我打电话',
   },
 
   notif: {

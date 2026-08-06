@@ -12,6 +12,7 @@ import { DailyLog } from '../screens/caregiver/DailyLog';
 import { Adherence } from '../screens/caregiver/Adherence';
 import { Interactions } from '../screens/caregiver/Interactions';
 import { EmergencyCardScreen } from '../screens/shared/EmergencyCardScreen';
+import { ChatScreen } from '../screens/shared/ChatScreen';
 import type { CaregiverStackParams } from './types';
 
 const Stack = createNativeStackNavigator<CaregiverStackParams>();
@@ -49,6 +50,7 @@ export function CaregiverNavigator() {
       <Stack.Screen name="Adherence" component={Adherence} options={{ title: 'Adherence' }} />
       <Stack.Screen name="Interactions" component={Interactions} options={{ title: 'Interactions' }} />
       <Stack.Screen name="EmergencyCard" component={EmergencyCardScreen} options={{ title: 'Emergency card' }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Messages' }} />
     </Stack.Navigator>
   );
 }

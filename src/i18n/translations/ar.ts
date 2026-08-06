@@ -23,6 +23,7 @@ export const ar: Messages = {
     emergencyCard: 'بطاقة الطوارئ',
     language: 'اللغة',
     voice: 'الصوت',
+    chat: 'الرسائل',
   },
 
   role: {
@@ -49,6 +50,8 @@ export const ar: Messages = {
     talkSub: 'اطلب أدويتك، أو الاتصال بالعائلة',
     emergencyLabel: 'بطاقة الطوارئ',
     emergencySub: 'أدويتك وجهات اتصالك لمن يساعدك',
+    messagesLabel: 'الرسائل',
+    messagesSub: 'أرسل رسالة للعائلة من هنا',
     listening: (name) => `أنا أستمع، أحافظ على سلامة ${name}`,
     demoLevel: 'مستوى تجريبي',
     listeningOff: 'الاستماع للأمان متوقّف — اضغط لتشغيله',
@@ -184,6 +187,16 @@ export const ar: Messages = {
     noVoiceBody: (language) =>
       `جهازك لا يحتوي بعد على صوت للّغة ${language}. النص مترجَم بالكامل. يمكنك إضافة صوت من إعدادات المحتوى المنطوق في جهازك.`,
     moreVoices: 'يمكن إضافة أصوات أخرى من إعدادات iOS ‹ إمكانية الوصول ‹ المحتوى المنطوق ‹ الأصوات.',
+  },
+
+  chat: {
+    placeholder: 'اكتب رسالة…',
+    send: 'إرسال',
+    emptyTitle: 'لا توجد رسائل بعد',
+    emptyBody: 'أرسل الأولى أدناه.',
+    quickLoveToo: 'أنا أحبك أيضًا ❤️',
+    quickOkay: 'أنا بخير',
+    quickCallMe: 'اتصل بي',
   },
 
   notif: {

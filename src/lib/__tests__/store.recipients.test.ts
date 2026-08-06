@@ -9,6 +9,8 @@ jest.mock('../supabase', () => ({
   redeemCode: jest.fn(async () => null),
   upsertRecipient: jest.fn(),
   fetchRoster: jest.fn(async () => []),
+  sendMessageRemote: jest.fn(),
+  fetchMessagesRemote: jest.fn(async () => []),
 }));
 jest.mock('../auth', () => ({ signOut: jest.fn() }));
 jest.mock('../notifications', () => ({
@@ -104,5 +106,67 @@ describe('bindByCode (home device)', () => {
     expect(ok).toBe(true);
     expect(useStore.getState().medications.map((m) => m.name)).toEqual(['Lisinopril']);
     expect(useStore.getState().seniorBoundId).toBe(useStore.getState().roster[0].id);
+  });
+});
+
+describe('chat', () => {
+  test('sendMessage appends to the active recipient thread, sender from role', () => {
+    const s = useStore.getState();
+    s.setRole('caregiver');
+    s.createLovedOne('Rose', 'Mother');
+    useStore.getState().sendMessage('Thinking of you today');
+    const after = useStore.getState();
+    expect(after.messages).toHaveLength(1);
+    expect(after.messages[0]).toMatchObject({ sender: 'caregiver', body: 'Thinking of you today' });
+  });
+
+  test('a message from the senior is logged to the activity feed', () => {
+    const s = useStore.getState();
+    s.createLovedOne('Rose', 'Mother');
+    useStore.getState().setRole('senior');
+    useStore.getState().sendMessage("I'm doing great today");
+    const after = useStore.getState();
+    expect(after.events[0]).toMatchObject({ kind: 'activity', detail: "I'm doing great today" });
+  });
+
+  test('a message from the caregiver is not logged to the activity feed', () => {
+    const s = useStore.getState();
+    s.setRole('caregiver');
+    s.createLovedOne('Rose', 'Mother');
+    useStore.getState().sendMessage('hello');
+    expect(useStore.getState().events).toHaveLength(0);
+  });
+
+  test('blank messages are ignored', () => {
+    const s = useStore.getState();
+    s.createLovedOne('Rose', 'Mother');
+    useStore.getState().sendMessage('   ');
+    expect(useStore.getState().messages).toHaveLength(0);
+  });
+
+  test('each recipient has its own thread (isolation across switches)', () => {
+    const s = useStore.getState();
+    s.createLovedOne('Rose', 'Mother');
+    const roseId = useStore.getState().activeLovedOneId!;
+    useStore.getState().sendMessage('hi Rose');
+
+    s.createLovedOne('Bill', 'Father');
+    const billId = useStore.getState().activeLovedOneId!;
+    useStore.getState().sendMessage('hi Bill');
+
+    useStore.getState().setActiveRecipient(roseId);
+    expect(useStore.getState().messages.map((m) => m.body)).toEqual(['hi Rose']);
+
+    useStore.getState().setActiveRecipient(billId);
+    expect(useStore.getState().messages.map((m) => m.body)).toEqual(['hi Bill']);
+  });
+
+  test('markSeen stamps the right per-role timestamp', () => {
+    const s = useStore.getState();
+    s.createLovedOne('Rose', 'Mother');
+    expect(useStore.getState().lastSeenBySeniorAt).toBeNull();
+    useStore.getState().markSeen('senior');
+    expect(useStore.getState().lastSeenBySeniorAt).not.toBeNull();
+    expect(useStore.getState().lastSeenByCaregiverAt).toBeNull();
   });
 });

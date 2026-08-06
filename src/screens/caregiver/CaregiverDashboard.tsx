@@ -6,6 +6,7 @@ import { useStore, computeStatus } from '../../lib/store';
 import { buildDigest, scheduleDailyDigest } from '../../lib/notifications';
 import { checkInteractions } from '../../lib/interactions';
 import { adherenceStats } from '../../lib/adherence';
+import { hasUnseenFrom } from '../../lib/chat';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { Card, SectionLabel } from '../../components/ui/Card';
@@ -18,18 +19,23 @@ import type { CaregiverProps } from '../../navigation/types';
 
 export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome'>) {
   const state = useStore();
-  const { lovedOne, medications, events } = state;
+  const { lovedOne, medications, events, messages, lastSeenByCaregiverAt } = state;
   const status = useMemo(() => computeStatus(state), [state]);
   const reconcileDoses = useStore((s) => s.reconcileDoses);
+  const syncMessages = useStore((s) => s.syncMessages);
   const acknowledgeEvent = useStore((s) => s.acknowledgeEvent);
   const [digestOn, setDigestOn] = useState(false);
 
-  // Catch any lapsed doses whenever the caregiver opens the dashboard.
+  // Catch any lapsed doses, and poll for new messages, whenever the caregiver
+  // opens the dashboard.
   useFocusEffect(
     useCallback(() => {
       reconcileDoses();
-    }, [reconcileDoses]),
+      syncMessages();
+    }, [reconcileDoses, syncMessages]),
   );
+
+  const unreadMessages = hasUnseenFrom(messages, 'senior', lastSeenByCaregiverAt);
 
   const warnings = useMemo(() => checkInteractions(medications), [medications]);
   const adherence = useMemo(
@@ -47,30 +53,6 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
   if (!lovedOne) return <EmptyState navigation={navigation} />;
 
   const digest = buildDigest(events, lovedOne.name);
-
-  const defaultHello = `${lovedOne.relationship} is thinking of you ❤️`;
-  const sendHello = (msg: string) => {
-    state.sendCheckIn(msg.trim() || defaultHello);
-    Alert.alert('Sent', `Your hello is on its way to ${lovedOne.name}.`);
-  };
-
-  const onCheckIn = () => {
-    // Alert.prompt is iOS-only; fall back to a preset hello elsewhere.
-    if (typeof Alert.prompt === 'function') {
-      Alert.prompt(
-        `Send ${lovedOne.name} a hello`,
-        "It'll light up their screen and read out loud.",
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Send', onPress: (msg?: string) => sendHello(msg ?? '') },
-        ],
-        'plain-text',
-        '',
-      );
-    } else {
-      sendHello(defaultHello);
-    }
-  };
 
   const toggleDigest = async () => {
     if (!digestOn) {
@@ -150,13 +132,15 @@ export function CaregiverDashboard({ navigation }: CaregiverProps<'CaregiverHome
         </Pressable>
 
         <View style={styles.actions}>
-          <BigButton
-            icon="heart"
-            label="Send a hello"
-            variant="accent"
-            onPress={onCheckIn}
-            style={{ flex: 1 }}
-          />
+          <View style={{ flex: 1 }}>
+            <BigButton
+              icon="message"
+              label={`Message ${lovedOne.name}`}
+              variant="accent"
+              onPress={() => navigation.navigate('Chat')}
+            />
+            {unreadMessages ? <View style={styles.unreadDot} /> : null}
+          </View>
         </View>
         <View style={styles.actionRow}>
           <BigButton
@@ -365,6 +349,17 @@ const styles = StyleSheet.create({
   knobOn: { alignSelf: 'flex-end' },
 
   actions: { flexDirection: 'row', marginTop: space.lg },
+  unreadDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 14,
+    height: 14,
+    borderRadius: radius.pill,
+    backgroundColor: colors.urgent,
+    borderWidth: 2,
+    borderColor: colors.paper,
+  },
   actionRow: { flexDirection: 'row', gap: space.sm, marginTop: space.sm },
 
   logHead: {

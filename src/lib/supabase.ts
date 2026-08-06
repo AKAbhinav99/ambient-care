@@ -14,13 +14,15 @@
  *
  * When configured: caregiver auth is real (see lib/auth.ts), the recipient roster
  * + join codes live in `loved_ones`, the unauthenticated home device binds to a
- * recipient via the `redeem_code` RPC, and care events stream to `care_events`.
+ * recipient via the `redeem_code` RPC, care events stream to `care_events`, and
+ * chat messages sync via the `send_message`/`fetch_messages` RPCs (see lib/chat.ts
+ * for why this is polling rather than a Realtime subscription).
  */
 
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { CareEvent, LovedOne } from '../types';
+import type { CareEvent, ChatMessage, LovedOne, MessageSender } from '../types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -140,6 +142,51 @@ export async function redeemCode(code: string): Promise<LovedOne | null> {
   } catch (err) {
     console.warn('[supabase] redeemCode failed:', err);
     return null;
+  }
+}
+
+function rowToMessage(r: Row): ChatMessage {
+  return {
+    id: String(r.id),
+    lovedOneId: String(r.loved_one_id ?? ''),
+    sender: (r.sender === 'senior' ? 'senior' : 'caregiver') as MessageSender,
+    body: String(r.body ?? ''),
+    at: r.occurred_at ? new Date(r.occurred_at as string).getTime() : Date.now(),
+  };
+}
+
+/**
+ * Send a chat message via the `send_message` SECURITY DEFINER RPC — used by both
+ * roles (the home device has no account, so a plain authenticated insert won't
+ * work for it; going through the same RPC for both sides keeps one code path).
+ * Fire-and-forget: the local store already appended the message optimistically.
+ */
+export async function sendMessageRemote(message: ChatMessage): Promise<void> {
+  if (!supabase) return;
+  try {
+    await supabase.rpc('send_message', {
+      p_loved_one_id: message.lovedOneId,
+      p_sender: message.sender,
+      p_body: message.body,
+    });
+  } catch (err) {
+    console.warn('[supabase] sendMessageRemote failed (running local-only):', err);
+  }
+}
+
+/** Poll for messages newer than `sinceAt` (epoch ms) via the `fetch_messages` RPC. */
+export async function fetchMessagesRemote(lovedOneId: string, sinceAt: number): Promise<ChatMessage[]> {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase.rpc('fetch_messages', {
+      p_loved_one_id: lovedOneId,
+      p_since: new Date(sinceAt).toISOString(),
+    });
+    if (error || !data) return [];
+    return (data as Row[]).map(rowToMessage);
+  } catch (err) {
+    console.warn('[supabase] fetchMessagesRemote failed:', err);
+    return [];
   }
 }
 

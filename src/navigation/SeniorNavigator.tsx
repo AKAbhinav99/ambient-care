@@ -10,6 +10,7 @@ import { SeniorSettings } from '../screens/senior/SeniorSettings';
 import { LanguageScreen } from '../screens/senior/LanguageScreen';
 import { VoicePickerScreen } from '../screens/senior/VoicePickerScreen';
 import { EmergencyCardScreen } from '../screens/shared/EmergencyCardScreen';
+import { ChatScreen } from '../screens/shared/ChatScreen';
 import type { SeniorStackParams } from './types';
 
 const Stack = createNativeStackNavigator<SeniorStackParams>();
@@ -39,6 +40,7 @@ export function SeniorNavigator() {
       <Stack.Screen name="Language" component={LanguageScreen} options={{ title: t.nav.language }} />
       <Stack.Screen name="VoicePicker" component={VoicePickerScreen} options={{ title: t.nav.voice }} />
       <Stack.Screen name="EmergencyCard" component={EmergencyCardScreen} options={{ title: t.nav.emergencyCard }} />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: t.nav.chat }} />
     </Stack.Navigator>
   );
 }

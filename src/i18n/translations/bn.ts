@@ -24,6 +24,7 @@ export const bn: Messages = {
     emergencyCard: 'জরুরি কার্ড',
     language: 'ভাষা',
     voice: 'কণ্ঠস্বর',
+    chat: 'বার্তা',
   },
 
   role: {
@@ -50,6 +51,8 @@ export const bn: Messages = {
     talkSub: 'আপনার ওষুধ জিজ্ঞেস করুন, বা পরিবারকে ফোন করুন',
     emergencyLabel: 'জরুরি কার্ড',
     emergencySub: 'সাহায্যকারীদের জন্য আপনার ওষুধ ও যোগাযোগ',
+    messagesLabel: 'বার্তা',
+    messagesSub: 'এখান থেকেই পরিবারকে বার্তা পাঠান',
     listening: (name) => `আমি শুনছি, ${name}-কে নিরাপদ রাখছি`,
     demoLevel: 'ডেমো স্তর',
     listeningOff: 'নিরাপত্তার জন্য শোনা বন্ধ আছে — চালু করতে ট্যাপ করুন',
@@ -185,6 +188,16 @@ export const bn: Messages = {
     noVoiceBody: (language) =>
       `আপনার ডিভাইসে এখনও ${language}-এর জন্য কোনো কণ্ঠস্বর নেই। লেখাটি পুরোপুরি অনূদিত। আপনি ডিভাইসের Spoken Content সেটিংসে কণ্ঠস্বর যোগ করতে পারেন।`,
     moreVoices: 'আরও কণ্ঠস্বর iOS সেটিংস › Accessibility › Spoken Content › Voices-এ যোগ করা যায়।',
+  },
+
+  chat: {
+    placeholder: 'একটি বার্তা লিখুন…',
+    send: 'পাঠান',
+    emptyTitle: 'এখনও কোনো বার্তা নেই',
+    emptyBody: 'নিচে প্রথমটি পাঠান।',
+    quickLoveToo: 'আমিও তোমাকে ভালোবাসি ❤️',
+    quickOkay: 'আমি ঠিক আছি',
+    quickCallMe: 'আমাকে কল করুন',
   },
 
   notif: {

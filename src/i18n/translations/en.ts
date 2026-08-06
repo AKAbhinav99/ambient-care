@@ -28,6 +28,7 @@ export const en = {
     emergencyCard: 'Emergency card',
     language: 'Language',
     voice: 'Voice',
+    chat: 'Messages',
   },
 
   role: {
@@ -54,6 +55,8 @@ export const en = {
     talkSub: 'Ask for your pills, or to call family',
     emergencyLabel: 'Emergency Card',
     emergencySub: 'Your medicines & contacts for helpers',
+    messagesLabel: 'Messages',
+    messagesSub: 'Send a text to family, right here',
     listening: (name: string): string => `I'm listening, keeping ${name} safe`,
     demoLevel: 'demo level',
     listeningOff: 'Safety listening is off — tap to turn it on',
@@ -189,6 +192,16 @@ export const en = {
     noVoiceBody: (language: string): string =>
       `Your device doesn't have a spoken voice for ${language} yet. The text is fully translated. You can add a voice in your device's Spoken Content settings.`,
     moreVoices: 'More voices can be added in iOS Settings › Accessibility › Spoken Content › Voices.',
+  },
+
+  chat: {
+    placeholder: 'Type a message…',
+    send: 'Send',
+    emptyTitle: 'No messages yet',
+    emptyBody: 'Send the first one below.',
+    quickLoveToo: 'I love you too ❤️',
+    quickOkay: "I'm okay",
+    quickCallMe: 'Call me',
   },
 
   notif: {

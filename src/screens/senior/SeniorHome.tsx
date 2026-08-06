@@ -7,6 +7,7 @@ import { useT, defaultTtsFor } from '../../i18n';
 import { useAmbientMonitor } from '../../hooks/useAmbientMonitor';
 import { say } from '../../lib/speech';
 import { scheduleDoseReminders } from '../../lib/notifications';
+import { latestUnseenFrom } from '../../lib/chat';
 import { BigButton } from '../../components/ui/BigButton';
 import { DosePrompt } from '../../components/DosePrompt';
 import { Icon } from '../../components/ui/Icon';
@@ -16,9 +17,11 @@ import type { SeniorProps } from '../../navigation/types';
 
 export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
   const lovedOne = useStore((s) => s.lovedOne);
-  const checkIn = useStore((s) => s.checkIn);
-  const clearCheckIn = useStore((s) => s.clearCheckIn);
-  const logEvent = useStore((s) => s.logEvent);
+  const messages = useStore((s) => s.messages);
+  const lastSeenBySeniorAt = useStore((s) => s.lastSeenBySeniorAt);
+  const markSeen = useStore((s) => s.markSeen);
+  const sendMessage = useStore((s) => s.sendMessage);
+  const syncMessages = useStore((s) => s.syncMessages);
   const medications = useStore((s) => s.medications);
   const reconcileDoses = useStore((s) => s.reconcileDoses);
   const { t, lang } = useT();
@@ -26,15 +29,23 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
   const [now, setNow] = useState(new Date());
   const ambient = useAmbientMonitor();
 
-  // Tick the clock and, on each tick, reconcile any lapsed doses to "missed".
+  // The newest message from family the senior hasn't seen yet — surfaced right on
+  // the home screen (spoken + a banner), same spot the old one-shot "hello" used.
+  const newMessage = latestUnseenFrom(messages, 'caregiver', lastSeenBySeniorAt);
+  const unreadDot = newMessage != null;
+
+  // Tick the clock and, on each tick, reconcile any lapsed doses to "missed" and
+  // poll for new messages (no separate timer — piggybacks on this existing one).
   useEffect(() => {
     reconcileDoses();
+    syncMessages();
     const t = setInterval(() => {
       setNow(new Date());
       reconcileDoses();
+      syncMessages();
     }, 10000);
     return () => clearInterval(t);
-  }, [reconcileDoses]);
+  }, [reconcileDoses, syncMessages]);
 
   // Keep on-device dose reminders in sync with the current med list, in the
   // loved one's language.
@@ -56,21 +67,20 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
     }, [lovedOne?.ambientOptIn]),
   );
 
-  // Speak the caregiver's hello the moment it arrives.
+  // Speak a new message from family the moment it arrives, once per message.
   useEffect(() => {
-    if (checkIn) say(checkIn);
-  }, [checkIn]);
+    if (newMessage) say(newMessage.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newMessage?.id]);
 
   const firstName = lovedOne?.name?.split(' ')[0] ?? 'there';
 
-  const acknowledgeCheckIn = () => {
+  // Tapping the banner sends a real "thank you" reply into the thread (rather than
+  // just dismissing it) and marks the thread seen, which also clears the banner.
+  const acknowledgeMessage = () => {
     say(t.spoken.thankYou);
-    logEvent({
-      kind: 'activity',
-      severity: 'info',
-      title: `${firstName} waved back to your hello 👋`,
-    });
-    clearCheckIn();
+    sendMessage(t.spoken.thankYou);
+    markSeen('senior');
   };
 
   return (
@@ -88,10 +98,10 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
           <Text style={styles.date}>{longDate(now, defaultTtsFor(lang))}</Text>
         </View>
 
-        {/* Caregiver hello */}
-        {checkIn ? (
-          <Pressable style={styles.hello} onPress={acknowledgeCheckIn}>
-            <Text style={styles.helloText}>{checkIn}</Text>
+        {/* A new message from family */}
+        {newMessage ? (
+          <Pressable style={styles.hello} onPress={acknowledgeMessage}>
+            <Text style={styles.helloText}>{newMessage.body}</Text>
             <View style={styles.helloBtn}>
               <Icon name="heart" size={20} color={colors.onUrgent} fill={colors.onUrgent} />
               <Text style={styles.helloBtnText}>{t.home.thankYou}</Text>
@@ -121,6 +131,17 @@ export function SeniorHome({ navigation }: SeniorProps<'SeniorHome'>) {
             onPress={() => navigation.navigate('Voice')}
             style={{ marginTop: space.md }}
           />
+          <View>
+            <BigButton
+              icon="message"
+              label={t.home.messagesLabel}
+              sublabel={t.home.messagesSub}
+              variant="neutral"
+              onPress={() => navigation.navigate('Chat')}
+              style={{ marginTop: space.md }}
+            />
+            {unreadDot ? <View style={styles.unreadDot} /> : null}
+          </View>
           <BigButton
             icon="shield-plus"
             label={t.home.emergencyLabel}
@@ -204,6 +225,17 @@ const styles = StyleSheet.create({
   helloBtnText: { color: colors.onUrgent, fontFamily: font.bodyBold, fontSize: type.bodyLg },
 
   actions: { marginBottom: space.lg },
+  unreadDot: {
+    position: 'absolute',
+    top: space.md + 6,
+    right: space.lg + 6,
+    width: 14,
+    height: 14,
+    borderRadius: radius.pill,
+    backgroundColor: colors.urgent,
+    borderWidth: 2,
+    borderColor: colors.paper,
+  },
 
   listen: {
     backgroundColor: colors.surface,

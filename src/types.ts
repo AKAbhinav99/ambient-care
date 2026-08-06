@@ -108,13 +108,26 @@ export interface CareEvent {
   acknowledgedAt?: number; // set when a caregiver acknowledges (stops escalation)
 }
 
+export type MessageSender = 'caregiver' | 'senior';
+
+/** One chat message in a recipient's thread with their caregiver. */
+export interface ChatMessage {
+  id: string;
+  lovedOneId: string;
+  sender: MessageSender;
+  body: string;
+  at: number; // epoch ms
+}
+
 /** One care recipient's data slice, held keyed by recipient id in the store. */
 export interface RecipientData {
   medications: Medication[];
   doseLogs: DoseLog[];
   events: CareEvent[];
   lastActivityAt: number | null;
-  checkIn: string | null;
+  messages: ChatMessage[];
+  lastSeenBySeniorAt: number | null;
+  lastSeenByCaregiverAt: number | null;
 }
 
 export interface CareState {
@@ -125,7 +138,7 @@ export interface CareState {
   authStatus: AuthStatus;
 
   // --- Multi-recipient roster + the active recipient's live slice ---
-  // The "active mirror": lovedOne/medications/doseLogs/events/lastActivityAt/checkIn
+  // The "active mirror": lovedOne/medications/doseLogs/events/lastActivityAt/messages
   // below are always the ACTIVE recipient's data, so the existing screens are
   // unchanged. `recipients` holds every other recipient's slice, keyed by id.
   roster: LovedOne[];
@@ -142,5 +155,7 @@ export interface CareState {
   doseLogs: DoseLog[]; // dose history, newest first
   lastActivityAt: number | null;
   ambientRunning: boolean;
-  checkIn: string | null; // a warm note the caregiver sent, awaiting the senior
+  messages: ChatMessage[]; // the active recipient's chat thread, oldest first
+  lastSeenBySeniorAt: number | null;
+  lastSeenByCaregiverAt: number | null;
 }

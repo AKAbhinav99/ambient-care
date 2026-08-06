@@ -23,6 +23,7 @@ export const es: Messages = {
     emergencyCard: 'Tarjeta de emergencia',
     language: 'Idioma',
     voice: 'Voz',
+    chat: 'Mensajes',
   },
 
   role: {
@@ -49,6 +50,8 @@ export const es: Messages = {
     talkSub: 'Pide tus pastillas o llamar a la familia',
     emergencyLabel: 'Tarjeta de emergencia',
     emergencySub: 'Tus medicinas y contactos para quien te ayude',
+    messagesLabel: 'Mensajes',
+    messagesSub: 'Envía un mensaje a tu familia, aquí mismo',
     listening: (name) => `Estoy escuchando, cuidando a ${name}`,
     demoLevel: 'nivel de demostración',
     listeningOff: 'La escucha de seguridad está apagada: toca para activarla',
@@ -184,6 +187,16 @@ export const es: Messages = {
     noVoiceBody: (language) =>
       `Tu dispositivo aún no tiene una voz para ${language}. El texto está totalmente traducido. Puedes agregar una voz en los ajustes de Contenido Hablado de tu dispositivo.`,
     moreVoices: 'Puedes agregar más voces en Ajustes de iOS › Accesibilidad › Contenido hablado › Voces.',
+  },
+
+  chat: {
+    placeholder: 'Escribe un mensaje…',
+    send: 'Enviar',
+    emptyTitle: 'Aún no hay mensajes',
+    emptyBody: 'Envía el primero abajo.',
+    quickLoveToo: 'Yo también te quiero ❤️',
+    quickOkay: 'Estoy bien',
+    quickCallMe: 'Llámame',
   },
 
   notif: {
